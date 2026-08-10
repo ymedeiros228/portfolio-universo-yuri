@@ -569,22 +569,23 @@ export class Universe {
     let dustWritten = 0;
     for (let attempts = 0; dustWritten < dustN && attempts < dustN * 12; attempts++) {
       const angle = Math.random() * TAU;
-      const r = 3 + Math.pow(Math.random(), 0.4) * 20;
+      const r = 5 + Math.pow(Math.random(), 0.4) * 18;
       // Lanes escuras seguem padrões de noise — entre regiões brilhantes
       const laneNoise = fbm2(Math.cos(angle) * r * 0.06, Math.sin(angle) * r * 0.06);
-      if (laneNoise > 0.1) continue; // só em regiões de lane
+      if (laneNoise > -0.05) continue; // só em regiões de lane
       // Lanes acompanham a borda interna dos braços
       const arm = pickArm();
       const spiralTheta = arm.offset + Math.log(Math.max(r, 1.2) / 1.2) / arm.pitch;
-      const lane = spiralTheta - 0.30 + (Math.random() - 0.5) * 0.35 * arm.width
+      const laneOffset = Math.random() < 0.5 ? -0.34 : -0.14;
+      const lane = spiralTheta + laneOffset + (Math.random() - 0.5) * 0.14 * arm.width
         + fbm2(Math.cos(spiralTheta) * r * 0.09, Math.sin(spiralTheta) * r * 0.09) * 0.4;
-      const x = Math.cos(lane) * r + noise2(r * 0.2, lane) * 2;
-      const z = Math.sin(lane) * r + noise2(r * 0.25, lane) * 2;
-      const y = noise2(x * 0.1, z * 0.1) * 1.0;
+      const x = Math.cos(lane) * r + noise2(r * 0.2, lane) * 0.8;
+      const z = Math.sin(lane) * r + noise2(r * 0.25, lane) * 0.8;
+      const y = noise2(x * 0.1, z * 0.1) * 0.55;
       dPos[dustWritten*3] = x; dPos[dustWritten*3+1] = y; dPos[dustWritten*3+2] = z;
       // Cor escura — azul-marrom muito escuro
       dCol[dustWritten*3] = 0.01; dCol[dustWritten*3+1] = 0.008; dCol[dustWritten*3+2] = 0.015;
-      dSiz[dustWritten] = 2.5 + Math.random() * 3.5;
+      dSiz[dustWritten] = 1.2 + Math.random() * 1.8;
       dustWritten++;
     }
     dustGeo.setAttribute("position", new THREE.BufferAttribute(dPos, 3));
@@ -601,7 +602,7 @@ export class Universe {
         gl_PointSize = aSize * uPx * (300.0 / -mv.z); gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `varying vec3 vC;
         void main(){ vec2 uv = gl_PointCoord - 0.5; float d = length(uv);
-        float a = exp(-d * 2.5) * 0.065;
+        float a = exp(-d * 2.5) * 0.022;
         gl_FragColor = vec4(vC, a); }`,
       transparent: true, depthWrite: false, blending: THREE.NormalBlending, opacity: 1.0
     });
