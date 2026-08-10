@@ -747,19 +747,19 @@ export class Universe {
       const g = new THREE.Group();
       let sun = null, sprite = null, corona = null, orbs = [], light = null;
       if (!p.isAbout) {
-        // Glow grande para ser visível à distância
-        sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: p.color, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
-        sprite.scale.set(3.0, 3.0, 1);
+        // Glow discreto para não competir com a galáxia
+        sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: p.color, transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending }));
+        sprite.scale.set(2.2, 2.2, 1);
         g.add(sprite);
         // Corona: segunda camada de glow, maior e mais sutil
-        corona = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: p.color, transparent: true, opacity: 0.12, depthWrite: false, blending: THREE.AdditiveBlending }));
-        corona.scale.set(6.0, 6.0, 1);
+        corona = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: p.color, transparent: true, opacity: 0.06, depthWrite: false, blending: THREE.AdditiveBlending }));
+        corona.scale.set(4.5, 4.5, 1);
         g.add(corona);
         // Sol maior e brilhante
         sun = new THREE.Mesh(new THREE.SphereGeometry(0.25, 24, 24), new THREE.MeshBasicMaterial({ color: p.color }));
         g.add(sun);
         // Luz própria para iluminar o que estiver perto
-        light = new THREE.PointLight(p.color, 0.4, 6, 2);
+        light = new THREE.PointLight(p.color, 0.2, 6, 2);
         g.add(light);
         // 2 planetas pequenos orbitando
         for (let k = 0; k < 2; k++) {
@@ -1096,16 +1096,16 @@ export class Universe {
         const phase = sys.index * 2.3;
         const pulse = 1 + (Math.sin(t * 0.3 + phase) * 0.5 + Math.sin(t * 0.7 + phase * 1.7) * 0.3 + Math.sin(t * 0.13 + phase * 0.5) * 0.2) * 0.03;
         const hoverBoost = (sys === this._hoveredSys) ? 1.5 : 1.0;
-        const targetOp = 0.35 * hoverBoost;
+        const targetOp = 0.18 * hoverBoost;
         sys.sprite.material.opacity = damp(sys.sprite.material.opacity, targetOp, 3, dt);
-        sys.sprite.scale.set(3.0 * pulse * hoverBoost, 3.0 * pulse * hoverBoost, 1);
+        sys.sprite.scale.set(2.2 * pulse * hoverBoost, 2.2 * pulse * hoverBoost, 1);
         // Corona: respira mais devagar, independente
         if (sys.corona) {
           const coronaPulse = 1 + (Math.sin(t * 0.15 + phase * 1.3) * 0.5 + Math.sin(t * 0.37 + phase * 2.1) * 0.3) * 0.04;
-          sys.corona.scale.set(6.0 * coronaPulse * hoverBoost, 6.0 * coronaPulse * hoverBoost, 1);
-          sys.corona.material.opacity = damp(sys.corona.material.opacity, 0.12 * hoverBoost, 2, dt);
+          sys.corona.scale.set(4.5 * coronaPulse * hoverBoost, 4.5 * coronaPulse * hoverBoost, 1);
+          sys.corona.material.opacity = damp(sys.corona.material.opacity, 0.06 * hoverBoost, 2, dt);
         }
-        if (sys.light) sys.light.intensity = damp(sys.light.intensity, sys === this._hoveredSys ? 0.7 : 0.4, 3, dt);
+        if (sys.light) sys.light.intensity = damp(sys.light.intensity, sys === this._hoveredSys ? 0.3 : 0.2, 3, dt);
       }
     });
 

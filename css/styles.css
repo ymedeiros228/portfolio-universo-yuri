@@ -61,7 +61,7 @@ button, a { cursor: pointer; }
 /* ---------- Nome central ---------- */
 .center-name {
   position: fixed; top: 50%; left: 50%;
-  transform: translate(-50%, -50%) scale(1.15);
+  transform: translate(-50%, -50%) scale(1.05);
   z-index: 25; text-align: center;
   pointer-events: auto;
   background: transparent; border: none;
@@ -82,30 +82,30 @@ button, a { cursor: pointer; }
 }
 .center-name__title {
   font-family: var(--serif);
-  font-weight: 400;
-  font-size: clamp(28px, 5vw, 76px);
-  letter-spacing: 0.36em;
-  text-indent: 0.36em;
-  color: rgba(246, 242, 234, 0.92);
+  font-weight: 300;
+  font-size: clamp(22px, 3.4vw, 52px);
+  letter-spacing: 0.28em;
+  text-indent: 0.28em;
+  color: rgba(246, 242, 234, 0.74);
   line-height: 1;
-  text-shadow: 0 0 60px rgba(220,180,160,0.15), 0 2px 30px rgba(0,0,0,0.8);
+  text-shadow: 0 0 24px rgba(220,180,160,0.08), 0 2px 16px rgba(0,0,0,0.38);
   animation: breathe 9s ease-in-out infinite;
 }
 .center-name__phrase {
-  margin-top: 28px;
-  font-size: clamp(8px, 0.9vw, 11px);
-  letter-spacing: 0.46em;
-  text-indent: 0.46em;
+  margin-top: 20px;
+  font-size: clamp(7px, 0.7vw, 10px);
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
   text-transform: uppercase;
-  color: rgba(246, 242, 234, 0.35);
+  color: rgba(246, 242, 234, 0.24);
   font-weight: 300;
   animation: fadeIn 4s var(--ease) 1.5s both;
   max-width: 600px;
 }
 .center-name__hint {
-  margin-top: 22px;
-  font-size: 8px; letter-spacing: 0.5em; text-transform: uppercase;
-  color: rgba(210,180,160,0.4); font-weight: 400; opacity: 0;
+  margin-top: 16px;
+  font-size: 7px; letter-spacing: 0.38em; text-transform: uppercase;
+  color: rgba(210,180,160,0.28); font-weight: 400; opacity: 0;
   transition: opacity 1.6s var(--ease);
   animation: hintPulse 5s ease-in-out 4s infinite;
 }
