@@ -82,7 +82,7 @@ export class Universe {
     // Pixel ratio máximo — render nativo em telas 4K/Retina
     this.renderer.setPixelRatio(window.devicePixelRatio || 1);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setClearColor(0x050810, 1);
+    this.renderer.setClearColor(0x030617, 1);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 0.38;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -91,7 +91,7 @@ export class Universe {
 
   _initScene() {
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.FogExp2(0x050810, 0.007);
+    this.scene.fog = new THREE.FogExp2(0x030617, 0.007);
   }
 
   _initCamera() {
@@ -161,9 +161,9 @@ export class Universe {
     const ctx = c.getContext("2d");
     ctx.clearRect(0, 0, S, S);
     const g1 = ctx.createRadialGradient(S/2, S/2, 0, S/2, S/2, S/2);
-    g1.addColorStop(0, `hsla(${hue}, 40%, 45%, 0.3)`);
-    g1.addColorStop(0.3, `hsla(${hue}, 35%, 30%, 0.1)`);
-    g1.addColorStop(1, `hsla(${hue}, 25%, 16%, 0)`);
+    g1.addColorStop(0, `hsla(${hue}, 46%, 45%, 0.3)`);
+    g1.addColorStop(0.3, `hsla(${hue}, 39%, 30%, 0.1)`);
+    g1.addColorStop(1, `hsla(${hue}, 30%, 16%, 0)`);
     ctx.fillStyle = g1; ctx.fillRect(0, 0, S, S);
     for (let i = 0; i < 6; i++) {
       const bx = S/2 + (Math.random() - 0.5) * S * 0.6;
@@ -171,8 +171,8 @@ export class Universe {
       const br = S * (0.12 + Math.random() * 0.25);
       const g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
       const h = hue + (Math.random() - 0.5) * 30;
-      g.addColorStop(0, `hsla(${h}, 35%, 38%, ${0.07 + Math.random() * 0.07})`);
-      g.addColorStop(1, `hsla(${h}, 30%, 22%, 0)`);
+      g.addColorStop(0, `hsla(${h}, 40%, 38%, ${0.07 + Math.random() * 0.07})`);
+      g.addColorStop(1, `hsla(${h}, 34%, 22%, 0)`);
       ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
     }
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
@@ -183,10 +183,10 @@ export class Universe {
     this.scene.add(this.nebulaGroup);
     // Nebulosas: azul espacial + violeta suave + rosa cósmico discreto
     const configs = [
-      { pos: [0, 1, -8], scale: 55, hue: 230, color: 0x141830, op: 0.06 },
-      { pos: [-22, -3, 12], scale: 45, hue: 250, color: 0x181428, op: 0.05 },
-      { pos: [20, 4, -15], scale: 50, hue: 210, color: 0x101828, op: 0.045 },
-      { pos: [8, -6, 18], scale: 38, hue: 280, color: 0x181020, op: 0.035 },
+      { pos: [0, 1, -8], scale: 55, hue: 232, color: 0x111a3c, op: 0.06 },
+      { pos: [-22, -3, 12], scale: 45, hue: 258, color: 0x1b1740, op: 0.05 },
+      { pos: [20, 4, -15], scale: 50, hue: 218, color: 0x101b3d, op: 0.045 },
+      { pos: [8, -6, 18], scale: 38, hue: 278, color: 0x21183d, op: 0.035 },
     ];
     this.nebulae = configs.map(cfg => {
       const tex = this._makeNebulaTexture(cfg.hue);
@@ -256,7 +256,7 @@ export class Universe {
       pos[i*3+2] = Math.sin(t) * r;
       const inner = 1 - r/34;
       // Poeira orbital: azulada no interior, violeta escuro fora
-      const c = new THREE.Color().setHSL(0.62 + (1-inner)*0.05, 0.35, 0.05 + inner*0.07);
+      const c = new THREE.Color().setHSL(0.65 + (1-inner)*0.07, 0.38, 0.04 + inner*0.065);
       col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
       siz[i] = Math.random() * 1.6 + 0.3;
     }
@@ -291,15 +291,15 @@ export class Universe {
     const R = 24.0;
 
     // Paleta EXTREMAMENTE dessaturada — wallpaper cinematográfico
-    const cWhiteCore = new THREE.Color(0xe8e4e0);
-    const cGoldSoft  = new THREE.Color(0xb8b098);
-    const cHaloBlue  = new THREE.Color(0x687888);
-    const cBlueViolet= new THREE.Color(0x585878);
-    const cViolet    = new THREE.Color(0x484868);
-    const cPurple    = new THREE.Color(0x303040);
-    const cDeepBlue  = new THREE.Color(0x181c28);
-    const cFarBlue   = new THREE.Color(0x0a0e18);
-    const cVoid      = new THREE.Color(0x040608);
+    const cWhiteCore = new THREE.Color(0xeee8e2);
+    const cGoldSoft  = new THREE.Color(0xd0b67f);
+    const cHaloBlue  = new THREE.Color(0x9a8fbd);
+    const cBlueViolet= new THREE.Color(0x68649b);
+    const cViolet    = new THREE.Color(0x514476);
+    const cPurple    = new THREE.Color(0x302b5c);
+    const cDeepBlue  = new THREE.Color(0x151b42);
+    const cFarBlue   = new THREE.Color(0x080d24);
+    const cVoid      = new THREE.Color(0x02040e);
     const cHII       = new THREE.Color(0x807888);
     const cDustRose  = new THREE.Color(0x504858);
 
@@ -551,7 +551,7 @@ export class Universe {
       // Cor fria e muito dessaturada
       const tr = r / R;
       const nc = new THREE.Color();
-      nc.setHSL(0.64 + Math.random() * 0.08, 0.16, 0.07 - tr * 0.025);
+      nc.setHSL(0.65 + Math.random() * 0.08, 0.22, 0.07 - tr * 0.025);
       nc.multiplyScalar(0.7);
       const m = new THREE.SpriteMaterial({ map: nebTex, color: nc, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: op });
       const sp = new THREE.Sprite(m);
@@ -643,7 +643,7 @@ export class Universe {
       const c = new THREE.Color();
       const lightFalloff = Math.exp(-t * 2.0);
       const hue = t < 0.25 ? 0.64 : (t < 0.55 ? 0.69 : 0.66);
-      c.setHSL(hue, 0.16, 0.055 + (1 - t) * 0.025);
+      c.setHSL(hue, 0.22, 0.055 + (1 - t) * 0.025);
       c.multiplyScalar(lightFalloff);
       col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
       siz[i] = Math.random() * 5.0 + 2.0; // grande e difuso
@@ -687,8 +687,8 @@ export class Universe {
       pos[i*3+1] = r * Math.cos(phi) * 0.6 + (Math.random() - 0.5) * 5;
       pos[i*3+2] = r * Math.sin(phi) * Math.sin(theta) + (isForeground ? 8 : -8);
       const c = new THREE.Color();
-      const hue = 220 + Math.random() * 50;
-      c.setHSL(hue / 360, 0.3, 0.03 + Math.random() * 0.03);
+      const hue = 228 + Math.random() * 56;
+      c.setHSL(hue / 360, 0.28, 0.03 + Math.random() * 0.03);
       col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
       siz[i] = Math.random() * 9.0 + 4.0;
     }
