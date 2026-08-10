@@ -149,14 +149,18 @@ export class Universe {
           blur += texture2D(tDiffuse, uv + vec2(-px.x,  px.y)).rgb * 0.0625;
           blur += texture2D(tDiffuse, uv + vec2( 0.0,  px.y)).rgb * 0.125;
           blur += texture2D(tDiffuse, uv + vec2( px.x,  px.y)).rgb * 0.0625;
-          col = col + (col - blur) * 0.03;
+          col = col + (col - blur) * 0.06;
           // ===== DEPTH OF FIELD SUTIL =====
           float lum = dot(blur, vec3(0.299, 0.587, 0.114));
-          float dofFactor = smoothstep(0.0, 0.15, lum) * smoothstep(0.9, 0.3, dist);
-          col = mix(blur, col, 0.8 + dofFactor * 0.2);
+          float dofFactor = smoothstep(0.0, 0.12, lum) * smoothstep(0.85, 0.25, dist);
+          col = mix(blur, col, 0.75 + dofFactor * 0.25);
           // ===== TILT QUASE NEUTRO =====
           float warmth = 1.0 - smoothstep(0.0, 0.8, dist);
           col *= vec3(1.0, 1.0, 1.0 + (1.0 - warmth) * 0.015);
+          // ===== ABERRAÇÃO CROMÁTICA ULTRA-SUTIL =====
+          float caStrength = 0.0015 * smoothstep(0.3, 0.9, dist);
+          col.r = texture2D(tDiffuse, uv + vec2(caStrength, 0.0)).r;
+          col.b = texture2D(tDiffuse, uv - vec2(caStrength, 0.0)).b;
           // ===== CONTRASTE SUAVE — não amplifica saturação =====
           col = (col - 0.5) * 1.06 + 0.5;
           col = max(col, vec3(0.0));
@@ -309,7 +313,7 @@ export class Universe {
         gl_PointSize = aSize * uPx * (200.0 / -mv.z); gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `varying vec3 vC;
         void main(){ vec2 uv = gl_PointCoord - 0.5; float d = length(uv);
-        float a = smoothstep(0.5, 0.0, d); gl_FragColor = vec4(vC, a * 0.02); }`,
+        float a = exp(-d * d * 8.0) * 0.025; gl_FragColor = vec4(vC, a); }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 1.0
     });
     this.dust = new THREE.Points(geo, mat);
@@ -561,6 +565,14 @@ export class Universe {
       [1.0, "rgba(0, 0, 0, 0)"]
     ]);
     glowConfigs.push({ tex: texCore, scale: 5, op: 0.30 });
+    // Lens flare sutil — sprite alongado horizontal
+    const flareTex = makeGlowTexture([
+      [0.0, "rgba(255, 245, 220, 0.12)"],
+      [0.1, "rgba(230, 210, 180, 0.06)"],
+      [0.4, "rgba(180, 165, 150, 0.02)"],
+      [1.0, "rgba(0, 0, 0, 0)"]
+    ]);
+    glowConfigs.push({ tex: flareTex, scale: 12, op: 0.05 });
     glowConfigs.forEach(cfg => {
       const m = new THREE.SpriteMaterial({ map: cfg.tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: cfg.op });
       const sp = new THREE.Sprite(m);
@@ -581,7 +593,7 @@ export class Universe {
       [0.7, "rgba(10, 12, 20, 0.01)"],
       [1.0, "rgba(0, 0, 0, 0)"]
     ]);
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 50; i++) {
       const r = 4 + Math.pow(Math.random(), 0.6) * 18;
       const arm = pickArm();
       const spiralTheta = arm.offset + Math.log(Math.max(r, 1.2) / 1.2) / arm.pitch;
@@ -612,7 +624,7 @@ export class Universe {
     this.scene.add(this.nebulaSprites);
 
     // ===== DARK DUST LANES: faixas escuras que bloqueiam luz (NormalBlending) =====
-    const dustN = 5200;
+    const dustN = 8000;
     const dustGeo = new THREE.BufferGeometry();
     const dPos = new Float32Array(dustN * 3), dCol = new Float32Array(dustN * 3), dSiz = new Float32Array(dustN);
     let dustWritten = 0;
@@ -665,7 +677,7 @@ export class Universe {
 
   _buildInterstellarDust() {
     // Poeira interestelar — distribuição orgânica por noise, sem braços
-    const N = 10000;
+    const N = 15000;
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(N * 3), col = new Float32Array(N * 3), siz = new Float32Array(N);
     const R = 22.0;
@@ -711,7 +723,7 @@ export class Universe {
       fragmentShader: `varying vec3 vC; varying float vRadius;
         uniform float uTime;
         void main(){ vec2 uv = gl_PointCoord - 0.5; float d = length(uv);
-        float a = exp(-d * 2.5) * 0.06;
+        float a = exp(-d * d * 6.0) * 0.07;
         float breath = 0.9 + sin(uTime * 0.06 + vRadius * 0.2) * 0.1;
         gl_FragColor = vec4(vC * breath, a); }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 1.0
@@ -723,11 +735,11 @@ export class Universe {
   _buildForegroundDust() {
     // Poeira foreground (entre câmera e galáxia) + background (atrás da galáxia)
     // Parallax real quando a câmera se move
-    const N = 3800;
+    const N = 6000;
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(N * 3), col = new Float32Array(N * 3), siz = new Float32Array(N);
     for (let i = 0; i < N; i++) {
-      const isForeground = i < 2500;
+      const isForeground = i < 4000;
       const r = isForeground ? (10 + Math.random() * 12) : (35 + Math.random() * 15);
       const theta = Math.random() * TAU, phi = Math.acos(2 * Math.random() - 1);
       pos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
@@ -754,7 +766,7 @@ export class Universe {
         gl_PointSize = aSize * uPx * (180.0 / -mv.z); gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `varying vec3 vC;
         void main(){ vec2 uv = gl_PointCoord - 0.5; float d = length(uv);
-        float a = exp(-d * 2.5) * 0.028;
+        float a = exp(-d * d * 6.0) * 0.03;
         gl_FragColor = vec4(vC, a); }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 1.0
     });
@@ -884,16 +896,22 @@ export class Universe {
           float t = bands * 0.5 + 0.5;
           t = mix(t, turb, 0.35);
           t = mix(t, detail * 0.5 + 0.5, 0.15);
+          // Normal mapping procedural: perturba a normal com gradiente do FBM
+          float eps = 0.5;
+          float nx = fbm3(vec3(vPos.x + eps, vPos.y, vPos.z)) - fbm3(vec3(vPos.x - eps, vPos.y, vPos.z));
+          float ny = fbm3(vec3(vPos.x, vPos.y + eps, vPos.z)) - fbm3(vec3(vPos.x, vPos.y - eps, vPos.z));
+          float nz = fbm3(vec3(vPos.x, vPos.y, vPos.z + eps)) - fbm3(vec3(vPos.x, vPos.y, vPos.z - eps));
+          vec3 Np = normalize(N + vec3(nx, ny, nz) * 0.15);
           // Cor: gradiente suave deep -> color -> accent
           vec3 base = mix(uDeep, uColor, smoothstep(0.2, 0.8, t));
           base = mix(base, uAccent, smoothstep(0.6, 0.95, t) * 0.4);
           // Iluminação: luz do canto superior-esquerdo, mais dramática
           vec3 lightDir = normalize(vec3(0.5, 0.6, 0.8));
-          float wrap = (dot(N, lightDir) + 0.25) / 1.25;
+          float wrap = (dot(Np, lightDir) + 0.25) / 1.25;
           wrap = max(wrap, 0.0);
           base *= 0.05 + wrap * 0.6;
-          // Specular sutil nas bandas claras
-          float spec = pow(max(dot(reflect(-lightDir, N), V), 0.0), 20.0) * 0.15;
+          // Specular sutil nas bandas claras — usa normal perturbada
+          float spec = pow(max(dot(reflect(-lightDir, Np), V), 0.0), 32.0) * 0.2;
           base += uAccent * spec * smoothstep(0.5, 0.9, t);
           // Terminador dramático (transição dia/noite)
           float term = smoothstep(-0.15, 0.25, dot(N, lightDir));
