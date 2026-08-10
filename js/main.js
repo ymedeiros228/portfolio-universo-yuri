@@ -41,6 +41,10 @@ let hasDeparted = false;
 
 /* ----------------- Star labels ----------------- */
 const starLabelEls = new Map();
+const hideStarLabel = (el) => {
+  el.style.opacity = "0";
+  el.classList.remove("is-shown", "is-hovered");
+};
 PROJECTS.forEach((p) => {
   const el = document.createElement("button");
   el.className = "star-label";
@@ -68,11 +72,11 @@ scene.onLabels((systems) => {
     if (!el) return;
     const w = sys.worldPos.clone(); w.y += 0.9;
     const s = scene.projectToScreen(w);
-    if (s.behind) { el.classList.remove("is-shown"); return; }
+    if (s.behind) { hideStarLabel(el); return; }
     // Fade por distância: aparece quando a câmera está perto o suficiente
     const dist = sys.worldPos.distanceTo(scene.camPos);
     const op = Math.max(0, Math.min(1, (40 - dist) / 18));
-    if (op < 0.05) { el.classList.remove("is-shown"); return; }
+    if (op < 0.05) { hideStarLabel(el); return; }
     el.style.left = `${s.x}px`;
     el.style.top = `${s.y}px`;
     el.style.opacity = op;
@@ -81,8 +85,11 @@ scene.onLabels((systems) => {
     el.classList.toggle("is-hovered", sys.project.id === hoveredId);
   });
   const shown = new Set(systems.filter(s => !s.project.isAbout).map(s => s.project.id));
-  starLabelEls.forEach((el, id) => { if (!shown.has(id)) { el.classList.remove("is-shown"); el.classList.remove("is-hovered"); } });
+  starLabelEls.forEach((el, id) => { if (!shown.has(id)) hideStarLabel(el); });
 });
+
+centerName.addEventListener("mouseenter", () => scene.setCenterHovered(true));
+centerName.addEventListener("mouseleave", () => scene.setCenterHovered(false));
 
 /* ----------------- Archive labels ----------------- */
 const archiveLabelEls = ARCHIVE.map((a) => {

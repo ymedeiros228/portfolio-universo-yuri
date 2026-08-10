@@ -46,6 +46,7 @@ export class Universe {
     this.raycaster = new THREE.Raycaster();
     this._pointerScreen = null;
     this._hoveredSys = null;
+    this._centerHovered = false;
     this._dragMoved = false;
     this._yaw = 0.0;
     this._pitch = 0.46;
@@ -141,8 +142,8 @@ export class Universe {
           col = (col - 0.5) * 1.06 + 0.5;
           col = max(col, vec3(0.0));
           // ===== VIGNETTE SUAVE =====
-          float vigPulse = 0.55 + sin(uTime * 0.08) * 0.01;
-          col *= 1.0 - smoothstep(0.5, 1.0, dist) * vigPulse;
+          float vigPulse = 0.72 + sin(uTime * 0.08) * 0.01;
+          col *= 1.0 - smoothstep(0.42, 0.95, dist) * vigPulse;
           // ===== GRAIN IMPERCEPTÍVEL =====
           float grain = fract(sin(dot(uv * 800.0 + uTime, vec2(12.9898, 78.233))) * 43758.5453);
           col += (grain - 0.5) * 0.002;
@@ -183,10 +184,10 @@ export class Universe {
     this.scene.add(this.nebulaGroup);
     // Nebulosas: azul espacial + violeta suave + rosa cósmico discreto
     const configs = [
-      { pos: [0, 1, -8], scale: 55, hue: 232, color: 0x111a3c, op: 0.06 },
-      { pos: [-22, -3, 12], scale: 45, hue: 258, color: 0x1b1740, op: 0.05 },
-      { pos: [20, 4, -15], scale: 50, hue: 218, color: 0x101b3d, op: 0.045 },
-      { pos: [8, -6, 18], scale: 38, hue: 278, color: 0x21183d, op: 0.035 },
+      { pos: [0, 1, -8], scale: 55, hue: 232, color: 0x111a3c, op: 0.05 },
+      { pos: [-22, -3, 12], scale: 45, hue: 258, color: 0x1b1740, op: 0.04 },
+      { pos: [20, 4, -15], scale: 50, hue: 218, color: 0x101b3d, op: 0.035 },
+      { pos: [8, -6, 18], scale: 38, hue: 278, color: 0x21183d, op: 0.025 },
     ];
     this.nebulae = configs.map(cfg => {
       const tex = this._makeNebulaTexture(cfg.hue);
@@ -707,7 +708,7 @@ export class Universe {
         gl_PointSize = aSize * uPx * (180.0 / -mv.z); gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `varying vec3 vC;
         void main(){ vec2 uv = gl_PointCoord - 0.5; float d = length(uv);
-        float a = exp(-d * 2.5) * 0.04;
+        float a = exp(-d * 2.5) * 0.028;
         gl_FragColor = vec4(vC, a); }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 1.0
     });
@@ -905,6 +906,7 @@ export class Universe {
       this.pointerTarget.x = (e.clientX / window.innerWidth) * 2 - 1;
       this.pointerTarget.y = -((e.clientY / window.innerHeight) * 2 - 1);
       this._pointerScreen = { x: e.clientX, y: e.clientY };
+      if (!this.drag.active && (this.mode === "galaxy" || this.mode === "idle")) this._hoverRaycast();
       // Drag funciona em qualquer lugar
       if (this.drag.active) {
         const dx = (e.clientX - this.drag.x), dy = (e.clientY - this.drag.y);
@@ -923,12 +925,14 @@ export class Universe {
       if (e.target.closest("button, a") && e.target.closest(".star-label, .moon-label, .world__return, .center-name, .archive-label, .foot__link, .world__link, .contact-link")) return;
       this.drag.active = true; this.drag.x = e.clientX; this.drag.y = e.clientY;
       this._dragMoved = false;
+      this.renderer.domElement.style.cursor = "grabbing";
     });
     window.addEventListener("pointerup", (e) => {
       if (this.drag.active && !this._dragMoved && (this.mode === "galaxy" || this.mode === "idle")) {
         this._clickRaycast(e.clientX, e.clientY);
       }
       this.drag.active = false;
+      this.renderer.domElement.style.cursor = this._hoveredSys ? "pointer" : "grab";
     });
     // Wheel no window
     window.addEventListener("wheel", (e) => {
@@ -960,15 +964,26 @@ export class Universe {
       -((this._pointerScreen.y / window.innerHeight) * 2 - 1)
     );
     this.raycaster.setFromCamera(ndc, this.camera);
-    const meshes = this.systems.filter(s => s.sun).map(s => s.sun);
+    const meshes = this.systems.flatMap(s => [s.sun, s.sprite].filter(Boolean));
     const hits = this.raycaster.intersectObjects(meshes, false);
     this._hoveredSys = null;
     if (hits.length > 0) {
-      const sys = this.systems.find(s => s.sun === hits[0].object);
+      const sys = this.systems.find(s => s.sun === hits[0].object || s.sprite === hits[0].object);
       if (sys) this._hoveredSys = sys;
     }
-    this.renderer.domElement.style.cursor = this._hoveredSys ? "pointer" : "default";
+    if (!this._hoveredSys) {
+      let nearest = null, nearestDist = 30;
+      this.systems.forEach(sys => {
+        const p = this.projectToScreen(sys.worldPos);
+        const dist = Math.hypot(p.x - this._pointerScreen.x, p.y - this._pointerScreen.y);
+        if (!p.behind && dist < nearestDist) { nearest = sys; nearestDist = dist; }
+      });
+      this._hoveredSys = nearest;
+    }
+    this.renderer.domElement.style.cursor = this.drag.active ? "grabbing" : (this._hoveredSys ? "pointer" : "grab");
   }
+
+  setCenterHovered(hovered) { this._centerHovered = hovered; }
 
   _onResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -1041,7 +1056,8 @@ export class Universe {
     this.coreGlows.forEach((sp, i) => {
       const breath = 1 + (Math.sin(t * (0.04 + i * 0.01)) * 0.5 + Math.sin(t * (0.1 + i * 0.02) + 1.7) * 0.3) * 0.03;
       sp.scale.set(sp.userData.baseScale * breath, sp.userData.baseScale * breath, 1);
-      sp.material.opacity = sp.userData.baseOp * (0.85 + (Math.sin(t * (0.05 + i * 0.02)) * 0.5 + Math.sin(t * (0.13 + i * 0.03) + 2.1) * 0.3) * 0.12);
+      const centerBoost = this._centerHovered ? (i === 0 ? 1.16 : 1.08) : 1.0;
+      sp.material.opacity = damp(sp.material.opacity, sp.userData.baseOp * centerBoost * (0.85 + (Math.sin(t * (0.05 + i * 0.02)) * 0.5 + Math.sin(t * (0.13 + i * 0.03) + 2.1) * 0.3) * 0.12), 4, dt);
     });
     // Nebulosa volumétrica: respira suavemente
     this.nebulaSprites.children.forEach((sp, i) => {
@@ -1099,17 +1115,22 @@ export class Universe {
         // Pulsação orgânica: 3 oitavas, lenta, cada sol na sua fase
         const phase = sys.index * 2.3;
         const pulse = 1 + (Math.sin(t * 0.3 + phase) * 0.5 + Math.sin(t * 0.7 + phase * 1.7) * 0.3 + Math.sin(t * 0.13 + phase * 0.5) * 0.2) * 0.03;
-        const hoverBoost = (sys === this._hoveredSys) ? 1.5 : 1.0;
+        const hoverBoost = (sys === this._hoveredSys) ? 2.0 : 1.0;
         const targetOp = 0.18 * hoverBoost;
         sys.sprite.material.opacity = damp(sys.sprite.material.opacity, targetOp, 3, dt);
-        sys.sprite.scale.set(2.2 * pulse * hoverBoost, 2.2 * pulse * hoverBoost, 1);
+        const targetSpriteScale = 2.2 * pulse * hoverBoost;
+        const spriteScale = damp(sys.sprite.scale.x, targetSpriteScale, 4, dt);
+        sys.sprite.scale.set(spriteScale, spriteScale, 1);
+        sys.sun.scale.setScalar(damp(sys.sun.scale.x, sys === this._hoveredSys ? 1.35 : 1.0, 3, dt));
         // Corona: respira mais devagar, independente
         if (sys.corona) {
           const coronaPulse = 1 + (Math.sin(t * 0.15 + phase * 1.3) * 0.5 + Math.sin(t * 0.37 + phase * 2.1) * 0.3) * 0.04;
-          sys.corona.scale.set(4.5 * coronaPulse * hoverBoost, 4.5 * coronaPulse * hoverBoost, 1);
+          const targetCoronaScale = 4.5 * coronaPulse * hoverBoost;
+          const coronaScale = damp(sys.corona.scale.x, targetCoronaScale, 3, dt);
+          sys.corona.scale.set(coronaScale, coronaScale, 1);
           sys.corona.material.opacity = damp(sys.corona.material.opacity, 0.06 * hoverBoost, 2, dt);
         }
-        if (sys.light) sys.light.intensity = damp(sys.light.intensity, sys === this._hoveredSys ? 0.3 : 0.2, 3, dt);
+        if (sys.light) sys.light.intensity = damp(sys.light.intensity, sys === this._hoveredSys ? 0.55 : 0.2, 3, dt);
       }
     });
 
@@ -1186,7 +1207,7 @@ export class Universe {
     this.camera.fov = introFov;
     this.camera.updateProjectionMatrix();
 
-    const yaw = this._yaw + this.pointer.x * 0.08, pitch = this._pitch + this.pointer.y * 0.04, r = introRadius;
+    const yaw = this._yaw + this.pointer.x * 0.12, pitch = this._pitch + this.pointer.y * 0.06, r = introRadius;
     const org = this._organicOffset(t);
     const tx = Math.sin(yaw) * Math.cos(pitch) * r + org.x;
     const tz = Math.cos(yaw) * Math.cos(pitch) * r + org.z;
