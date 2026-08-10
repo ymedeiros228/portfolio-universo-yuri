@@ -397,9 +397,10 @@ export class Universe {
       const c = sampleGradient(tr + colorNoise);
       // Variação de brilho apenas (não matiz)
       const brightVar = (Math.random() - 0.5) * 0.05;
-      col[i*3] = Math.max(0, c.r + brightVar);
-      col[i*3+1] = Math.max(0, c.g + brightVar);
-      col[i*3+2] = Math.max(0, c.b + brightVar);
+      const coreSoftness = 0.45 + Math.min(1, tr * 3.5) * 0.55;
+      col[i*3] = Math.max(0, c.r * coreSoftness + brightVar);
+      col[i*3+1] = Math.max(0, c.g * coreSoftness + brightVar);
+      col[i*3+2] = Math.max(0, c.b * coreSoftness + brightVar);
 
       // ===== TAMANHO: grande e difuso — partículas se fundem em nuvens =====
       let sz = (1.5 + Math.random() * 2.5) * (1.3 - tr * 0.7);
@@ -439,41 +440,81 @@ export class Universe {
     const glowCanvas = document.createElement("canvas");
     glowCanvas.width = glowCanvas.height = 512;
     const gctx = glowCanvas.getContext("2d");
-    const makeGlowTexture = (stops) => {
+    const makeGlowTexture = (stops, detail = false) => {
       const c = document.createElement("canvas");
       c.width = c.height = 512;
       const ctx = c.getContext("2d");
       const g = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
       stops.forEach(s => g.addColorStop(s[0], s[1]));
       ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
+      if (detail) {
+        ctx.globalCompositeOperation = "screen";
+        ctx.filter = "blur(14px)";
+        const wisps = [
+          [238, 222, 92, 38, -0.35, "rgba(255, 240, 210, 0.08)"],
+          [302, 250, 76, 30, 0.45, "rgba(185, 165, 210, 0.065)"],
+          [250, 306, 62, 28, -0.7, "rgba(255, 226, 180, 0.06)"],
+          [320, 306, 48, 24, 0.25, "rgba(150, 165, 220, 0.05)"]
+        ];
+        wisps.forEach(([x, y, rx, ry, rotation, color]) => {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(rotation);
+          ctx.scale(1, ry / rx);
+          const wisp = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+          wisp.addColorStop(0, color);
+          wisp.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = wisp;
+          ctx.beginPath();
+          ctx.arc(0, 0, rx, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+        ctx.filter = "blur(8px)";
+        for (let i = 0; i < 9; i++) {
+          const a = i * 2.399;
+          const r = 34 + (i % 3) * 19;
+          const x = 256 + Math.cos(a) * r;
+          const y = 256 + Math.sin(a) * r;
+          const blob = ctx.createRadialGradient(x, y, 0, x, y, 22 + (i % 2) * 9);
+          blob.addColorStop(0, i % 2 ? "rgba(255, 244, 220, 0.05)" : "rgba(180, 165, 220, 0.045)");
+          blob.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = blob;
+          ctx.fillRect(x - 35, y - 35, 70, 70);
+        }
+        ctx.filter = "none";
+        ctx.globalCompositeOperation = "source-over";
+      }
       return new THREE.CanvasTexture(c);
     };
     // Sprite 1: núcleo interno — branco quente → dourado (suave)
     const tex1 = makeGlowTexture([
-      [0.0, "rgba(220, 215, 205, 0.25)"],
-      [0.15, "rgba(180, 175, 155, 0.15)"],
-      [0.4, "rgba(120, 120, 130, 0.05)"],
+      [0.0, "rgba(255, 248, 235, 0.14)"],
+      [0.12, "rgba(242, 211, 160, 0.11)"],
+      [0.35, "rgba(165, 135, 170, 0.06)"],
+      [0.62, "rgba(75, 80, 145, 0.018)"],
       [1.0, "rgba(0, 0, 0, 0)"]
-    ]);
+    ], true);
     // Sprite 2: halo médio — dourado → azul suave
     const tex2 = makeGlowTexture([
-      [0.0, "rgba(160, 155, 140, 0.12)"],
-      [0.2, "rgba(110, 115, 130, 0.07)"],
-      [0.5, "rgba(60, 65, 85, 0.03)"],
+      [0.0, "rgba(238, 192, 125, 0.09)"],
+      [0.2, "rgba(175, 145, 185, 0.06)"],
+      [0.5, "rgba(75, 82, 150, 0.025)"],
+      [0.75, "rgba(35, 48, 105, 0.01)"],
       [1.0, "rgba(0, 0, 0, 0)"]
     ]);
     // Sprite 3: halo externo — azul → transparente
     const tex3 = makeGlowTexture([
-      [0.0, "rgba(50, 55, 70, 0.05)"],
-      [0.3, "rgba(30, 35, 50, 0.025)"],
-      [0.7, "rgba(10, 15, 25, 0.008)"],
+      [0.0, "rgba(105, 95, 180, 0.04)"],
+      [0.3, "rgba(60, 70, 155, 0.022)"],
+      [0.7, "rgba(25, 35, 95, 0.007)"],
       [1.0, "rgba(0, 0, 0, 0)"]
     ]);
     this.coreGlows = [];
     const glowConfigs = [
-      { tex: tex1, scale: 8, op: 0.25 },
-      { tex: tex2, scale: 18, op: 0.15 },
-      { tex: tex3, scale: 32, op: 0.10 },
+      { tex: tex1, scale: 8, op: 0.18 },
+      { tex: tex2, scale: 18, op: 0.12 },
+      { tex: tex3, scale: 32, op: 0.07 },
     ];
     glowConfigs.forEach(cfg => {
       const m = new THREE.SpriteMaterial({ map: cfg.tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: cfg.op });
