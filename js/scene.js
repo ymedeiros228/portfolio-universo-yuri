@@ -203,7 +203,7 @@ export class Universe {
   /* ============================ STARFIELD ============================ */
 
   _buildStarfield() {
-    const N = 5000;
+    const N = 1400;
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(N * 3), siz = new Float32Array(N), col = new Float32Array(N * 3);
     const pal = [new THREE.Color(0xffffff), new THREE.Color(0xfff4e0), new THREE.Color(0xdfe7ff), new THREE.Color(0xffe9c8), new THREE.Color(0xcfd8f0)];
@@ -213,7 +213,7 @@ export class Universe {
       pos[i*3]   = r * Math.sin(p) * Math.cos(t);
       pos[i*3+1] = r * Math.cos(p) * 0.5;
       pos[i*3+2] = r * Math.sin(p) * Math.sin(t);
-      siz[i] = Math.random() * 1.0 + 0.15;
+      siz[i] = Math.random() * 1.3 + 0.2;
       const c = pal[(Math.random() * pal.length) | 0].clone().multiplyScalar(0.4);
       col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
     }
@@ -235,7 +235,7 @@ export class Universe {
         gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `varying vec3 vC; varying float vT;
         void main(){ vec2 uv = gl_PointCoord - 0.5; float d = length(uv);
-        float a = smoothstep(0.5, 0.0, d); a *= a; gl_FragColor = vec4(vC, a * vT * 0.65); }`,
+        float a = smoothstep(0.5, 0.0, d); a *= a; gl_FragColor = vec4(vC, a * vT * 0.72); }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 1.0
     });
     this.starfield = new THREE.Points(geo, mat);
@@ -283,9 +283,9 @@ export class Universe {
   /* ============================ GALAXY (particles with 3D bulge) ============================ */
 
   _buildGalaxy() {
-    // ===== MASSA CÓSMICA ORGÂNICA — não espiral, não anéis, não partículas =====
-    // Distribuição por campo de ruído 3D (FBM) — regiões densas e vazias sem geometria
-    const N = 40000;
+    // ===== MASSA CÓSMICA ORGÂNICA sobre braços espirais =====
+    // Braços logarítmicos como base + densidade por campo de ruído 3D (FBM)
+    const N = 24000;
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(N * 3), col = new Float32Array(N * 3), siz = new Float32Array(N);
     const R = 24.0;
@@ -398,7 +398,7 @@ export class Universe {
       col[i*3+2] = Math.max(0, c.b * coreSoftness + brightVar);
 
       // ===== TAMANHO: grande e difuso — partículas se fundem em nuvens =====
-      let sz = (1.5 + Math.random() * 2.5) * (1.3 - tr * 0.7);
+      let sz = (1.8 + Math.random() * 3.0) * (1.45 - tr * 0.75);
       if (Math.random() < 0.008) sz *= 2.5; // estrelas brilhantes raras
       if (Math.random() < 0.002) sz *= 4.0; // supergigantes muito raras
       siz[i] = sz;
@@ -425,7 +425,7 @@ export class Universe {
         float a = core + halo;
         // Depth fog: partículas mais distantes são mais difusas
         float depthFade = smoothstep(60.0, 15.0, vDepth);
-        gl_FragColor = vec4(vC, a * 0.22 * depthFade); }`,
+        gl_FragColor = vec4(vC, a * 0.27 * depthFade); }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 1.0
     });
     this.galaxy = new THREE.Points(geo, mat);
@@ -557,15 +557,16 @@ export class Universe {
     this.scene.add(this.nebulaSprites);
 
     // ===== DARK DUST LANES: faixas escuras que bloqueiam luz (NormalBlending) =====
-    const dustN = 8000;
+    const dustN = 5200;
     const dustGeo = new THREE.BufferGeometry();
     const dPos = new Float32Array(dustN * 3), dCol = new Float32Array(dustN * 3), dSiz = new Float32Array(dustN);
-    for (let i = 0; i < dustN; i++) {
+    let dustWritten = 0;
+    for (let attempts = 0; dustWritten < dustN && attempts < dustN * 12; attempts++) {
       const angle = Math.random() * TAU;
       const r = 3 + Math.pow(Math.random(), 0.4) * 20;
       // Lanes escuras seguem padrões de noise — entre regiões brilhantes
       const laneNoise = fbm2(Math.cos(angle) * r * 0.06, Math.sin(angle) * r * 0.06);
-      if (laneNoise > 0.1) { i--; continue; } // só em regiões de lane
+      if (laneNoise > 0.1) continue; // só em regiões de lane
       // Lanes acompanham a borda interna dos braços
       const arm = pickArm();
       const spiralTheta = arm.offset + Math.log(Math.max(r, 1.2) / 1.2) / arm.pitch;
@@ -574,10 +575,11 @@ export class Universe {
       const x = Math.cos(lane) * r + noise2(r * 0.2, lane) * 2;
       const z = Math.sin(lane) * r + noise2(r * 0.25, lane) * 2;
       const y = noise2(x * 0.1, z * 0.1) * 1.0;
-      dPos[i*3] = x; dPos[i*3+1] = y; dPos[i*3+2] = z;
+      dPos[dustWritten*3] = x; dPos[dustWritten*3+1] = y; dPos[dustWritten*3+2] = z;
       // Cor escura — azul-marrom muito escuro
-      dCol[i*3] = 0.01; dCol[i*3+1] = 0.008; dCol[i*3+2] = 0.015;
-      dSiz[i] = 2.0 + Math.random() * 3.0;
+      dCol[dustWritten*3] = 0.01; dCol[dustWritten*3+1] = 0.008; dCol[dustWritten*3+2] = 0.015;
+      dSiz[dustWritten] = 2.5 + Math.random() * 3.5;
+      dustWritten++;
     }
     dustGeo.setAttribute("position", new THREE.BufferAttribute(dPos, 3));
     dustGeo.setAttribute("aSize", new THREE.BufferAttribute(dSiz, 1));
@@ -593,7 +595,7 @@ export class Universe {
         gl_PointSize = aSize * uPx * (300.0 / -mv.z); gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `varying vec3 vC;
         void main(){ vec2 uv = gl_PointCoord - 0.5; float d = length(uv);
-        float a = exp(-d * 2.5) * 0.055;
+        float a = exp(-d * 2.5) * 0.065;
         gl_FragColor = vec4(vC, a); }`,
       transparent: true, depthWrite: false, blending: THREE.NormalBlending, opacity: 1.0
     });
@@ -669,11 +671,11 @@ export class Universe {
   _buildForegroundDust() {
     // Poeira foreground (entre câmera e galáxia) + background (atrás da galáxia)
     // Parallax real quando a câmera se move
-    const N = 6000;
+    const N = 3800;
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(N * 3), col = new Float32Array(N * 3), siz = new Float32Array(N);
     for (let i = 0; i < N; i++) {
-      const isForeground = i < 4000;
+      const isForeground = i < 2500;
       const r = isForeground ? (10 + Math.random() * 12) : (35 + Math.random() * 15);
       const theta = Math.random() * TAU, phi = Math.acos(2 * Math.random() - 1);
       pos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
@@ -683,7 +685,7 @@ export class Universe {
       const hue = 220 + Math.random() * 50;
       c.setHSL(hue / 360, 0.3, 0.03 + Math.random() * 0.03);
       col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
-      siz[i] = Math.random() * 8.0 + 3.0;
+      siz[i] = Math.random() * 9.0 + 4.0;
     }
     geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     geo.setAttribute("aSize", new THREE.BufferAttribute(siz, 1));
@@ -700,7 +702,7 @@ export class Universe {
         gl_PointSize = aSize * uPx * (180.0 / -mv.z); gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `varying vec3 vC;
         void main(){ vec2 uv = gl_PointCoord - 0.5; float d = length(uv);
-        float a = exp(-d * 2.5) * 0.03;
+        float a = exp(-d * 2.5) * 0.04;
         gl_FragColor = vec4(vC, a); }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 1.0
     });
