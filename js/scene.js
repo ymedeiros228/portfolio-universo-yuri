@@ -106,7 +106,7 @@ export class Universe {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.08, 0.3, 0.85);
     this.composer.addPass(this.bloom);
-    // Color grading: vignette + grain + chromatic aberration + tilt quente
+    // Color grading: vignette + grain imperceptível + tilt quase neutro
     this.gradePass = new ShaderPass({
       uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uRes: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) } },
       vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
@@ -116,13 +116,8 @@ export class Universe {
           vec2 uv = vUv;
           vec2 d = uv - 0.5;
           float dist = length(d);
-          // Chromatic aberration muito sutil
-          float ab = 0.0004 * dist;
-          float r = texture2D(tDiffuse, uv - d * ab).r;
-          float g = texture2D(tDiffuse, uv).g;
-          float b = texture2D(tDiffuse, uv + d * ab).b;
-          vec3 col = vec3(r, g, b);
-          // ===== CONTRASTE LOCAL (unsharp mask) — mais forte para nitidez =====
+          vec3 col = texture2D(tDiffuse, uv).rgb;
+          // ===== CONTRASTE LOCAL (unsharp mask) — quase imperceptível =====
           vec2 px = 1.0 / uRes;
           vec3 blur = vec3(0.0);
           blur += texture2D(tDiffuse, uv + vec2(-px.x, -px.y)).rgb * 0.0625;
@@ -134,7 +129,7 @@ export class Universe {
           blur += texture2D(tDiffuse, uv + vec2(-px.x,  px.y)).rgb * 0.0625;
           blur += texture2D(tDiffuse, uv + vec2( 0.0,  px.y)).rgb * 0.125;
           blur += texture2D(tDiffuse, uv + vec2( px.x,  px.y)).rgb * 0.0625;
-          col = col + (col - blur) * 0.12;
+          col = col + (col - blur) * 0.03;
           // ===== DEPTH OF FIELD SUTIL =====
           float lum = dot(blur, vec3(0.299, 0.587, 0.114));
           float dofFactor = smoothstep(0.0, 0.15, lum) * smoothstep(0.9, 0.3, dist);
