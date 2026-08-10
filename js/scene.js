@@ -91,7 +91,7 @@ export class Universe {
 
   _initScene() {
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.FogExp2(0x050810, 0.011);
+    this.scene.fog = new THREE.FogExp2(0x050810, 0.007);
   }
 
   _initCamera() {
@@ -532,19 +532,24 @@ export class Universe {
       [1.0, "rgba(0, 0, 0, 0)"]
     ]);
     for (let i = 0; i < 30; i++) {
-      const angle = Math.random() * TAU;
       const r = 4 + Math.pow(Math.random(), 0.6) * 18;
+      const arm = pickArm();
+      const spiralTheta = arm.offset + Math.log(Math.max(r, 1.2) / 1.2) / arm.pitch;
+      const scatter = (Math.random() - 0.5) * (0.22 + r / R * 0.35);
+      const angle = spiralTheta + scatter * arm.width
+        + fbm2(Math.cos(spiralTheta) * r * 0.08, Math.sin(spiralTheta) * r * 0.08) * 0.35;
       const density = fbm3(Math.cos(angle) * r * 0.08, Math.sin(angle) * r * 0.08, r * 0.05);
       if (density < -0.1) continue;
       const x = Math.cos(angle) * r + noise2(r * 0.1, angle) * 2;
       const z = Math.sin(angle) * r + noise2(r * 0.15, angle) * 2;
       const y = noise2(x * 0.1, z * 0.1) * 1.5;
       const scale = 8 + Math.random() * 12;
-      const op = 0.03 + Math.random() * 0.04;
-      // Cor dessaturada baseada na posição
+      const op = 0.025 + Math.random() * 0.03;
+      // Cor fria e muito dessaturada
       const tr = r / R;
-      const nc = sampleGradient(tr + (Math.random() - 0.5) * 0.1);
-      nc.multiplyScalar(0.5); // dessaturar ainda mais
+      const nc = new THREE.Color();
+      nc.setHSL(0.64 + Math.random() * 0.08, 0.16, 0.07 - tr * 0.025);
+      nc.multiplyScalar(0.7);
       const m = new THREE.SpriteMaterial({ map: nebTex, color: nc, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: op });
       const sp = new THREE.Sprite(m);
       sp.position.set(x, y, z);
@@ -630,16 +635,12 @@ export class Universe {
       const z = Math.sin(angle) * radius + noise2(radius * 0.15, angle) * (0.5 + t * 1.1);
       const y = (Math.random() - 0.5) * (0.5 + (1 - t) * 1.5) + fbm2(x * 0.08, z * 0.08) * 0.8;
       pos[i*3] = x; pos[i*3+1] = y; pos[i*3+2] = z;
-      // Cores: dourado suave → violeta → azul
+      // Cores: azul profundo → violeta suave → lavanda escura
       const c = new THREE.Color();
       const lightFalloff = Math.exp(-t * 2.0);
-      if (t < 0.25) {
-        c.setRGB(0.12 * lightFalloff, 0.10 * lightFalloff, 0.10 * lightFalloff);
-      } else if (t < 0.55) {
-        c.setRGB(0.06 * lightFalloff, 0.05 * lightFalloff, 0.09 * lightFalloff);
-      } else {
-        c.setRGB(0.02 * lightFalloff, 0.025 * lightFalloff, 0.045 * lightFalloff);
-      }
+      const hue = t < 0.25 ? 0.64 : (t < 0.55 ? 0.69 : 0.66);
+      c.setHSL(hue, 0.16, 0.055 + (1 - t) * 0.025);
+      c.multiplyScalar(lightFalloff);
       col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
       siz[i] = Math.random() * 5.0 + 2.0; // grande e difuso
     }
