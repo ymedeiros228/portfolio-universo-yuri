@@ -875,13 +875,14 @@ export class Universe {
     this.planetMat.uniforms.uAccent.value = new THREE.Color(project.accent);
     this.heroHalo.material.uniforms.uColor.value = new THREE.Color(project.accent);
     const pSize = project.planet.size;
-    const planetScale = window.innerWidth > 820 ? pSize / 3.4 : pSize / 2.2;
+    const planetScale = window.innerWidth > 820 ? pSize / 3.4 : pSize / 4.6;
     this.heroPlanet.scale.setScalar(planetScale);
     this.heroHalo.scale.setScalar(planetScale);
     const moonCount = project.moons.length;
     project.moons.forEach((m, i) => {
       const radius = 4.6 + i * 0.65;
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.09 + (i % 3) * 0.015, 24, 24), new THREE.MeshStandardMaterial({ color: 0x6a6862, emissive: 0x040406, roughness: 0.9, metalness: 0.03 }));
+      const moonSize = window.innerWidth > 820 ? 0.13 + (i % 3) * 0.02 : 0.09 + (i % 3) * 0.015;
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(moonSize, 24, 24), new THREE.MeshStandardMaterial({ color: 0x6a6862, emissive: 0x040406, roughness: 0.9, metalness: 0.03 }));
       this.moonGroup.add(mesh);
       this.moons.push({ mesh, data: m, radius, speed: 0.1 + i * 0.03, phase: (i / moonCount) * TAU, tilt: (i % 2 === 0 ? 1 : -1) * 0.1, worldPos: new THREE.Vector3() });
     });

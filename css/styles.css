@@ -130,6 +130,11 @@ button, a { cursor: pointer; }
   transition: opacity 3.5s var(--ease) 2s, transform 3.5s var(--ease) 2s;
 }
 .signature.is-visible { opacity: 1; transform: translateY(0); }
+.signature.is-world-hidden {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
 .signature__dot {
   width: 3px; height: 3px; border-radius: 50%;
   background: var(--gold); box-shadow: 0 0 6px rgba(216,192,168,0.25);
@@ -155,6 +160,11 @@ button, a { cursor: pointer; }
   transition: opacity 3.5s var(--ease) 2.2s, transform 3.5s var(--ease) 2.2s;
 }
 .foot.is-visible { opacity: 1; transform: translateY(0); }
+.foot.is-world-hidden {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
 .foot__link {
   font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
   color: rgba(246,242,234,0.22); font-weight: 400; text-decoration: none;
@@ -409,17 +419,77 @@ button, a { cursor: pointer; }
 .world__scripture .contact-link span { font-size: 12px; opacity: 0.4; }
 
 @media (max-width: 820px) {
-  .world__head { top: 80px; left: 22px; max-width: 85vw; }
+  .world__head { top: 66px; left: 22px; max-width: 85vw; }
   .world.is-visible .world__head { transform: none; }
   .world__name { font-size: 28px; }
   .world__epithet { font-size: 11px; max-width: 85vw; }
-  .world__scripture { top: auto; bottom: 100px; right: 22px; left: 22px; width: auto; max-width: none; transform: none; }
+  .world__scripture {
+    top: auto;
+    bottom: 92px;
+    right: 22px;
+    left: 22px;
+    width: auto;
+    max-width: none;
+    transform: none;
+  }
   .world__scripture.is-shown { transform: none; }
   .world__scripture p { font-size: 13px; }
-  .world__links { gap: 16px; }
+  .world__links { bottom: 42px; gap: 16px; }
   .world__link { font-size: 9px; letter-spacing: 0.32em; }
-  .signature, .foot { left: 22px; right: 22px; justify-content: center; gap: 12px; }
+  .signature {
+    bottom: 72px;
+    left: 50%;
+    right: auto;
+    justify-content: center;
+    gap: 10px;
+    transform: translate(-50%, 8px);
+    font-size: 8px;
+    letter-spacing: 0.28em;
+    white-space: nowrap;
+  }
+  .signature.is-visible { transform: translate(-50%, 0); }
+  .foot {
+    bottom: 26px;
+    left: 50%;
+    right: auto;
+    justify-content: center;
+    gap: 12px;
+    transform: translate(-50%, 8px);
+  }
+  .foot.is-visible { transform: translate(-50%, 0); }
+  .foot__link { font-size: 8px; letter-spacing: 0.24em; }
   .foot__loc { display: none; }
+  .center-name__title {
+    font-size: clamp(20px, 7vw, 30px);
+    letter-spacing: 0.2em;
+    text-indent: 0.2em;
+  }
+  .center-name__phrase {
+    max-width: 88vw;
+    margin-top: 14px;
+    font-size: 7px;
+    line-height: 1.6;
+    letter-spacing: 0.22em;
+    text-indent: 0.22em;
+  }
+  .center-name__hint {
+    margin-top: 13px;
+    font-size: 8px;
+    letter-spacing: 0.25em;
+  }
+  .whisper {
+    bottom: 106px;
+    gap: 10px;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+  }
+  .whisper__line { width: 16px; }
+  .moon-label__text {
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    color: rgba(246, 242, 234, 0.5);
+    text-shadow: 0 1px 14px rgba(0, 0, 0, 1), 0 0 12px rgba(2, 3, 8, 0.8);
+  }
 }
 
 @media (min-width: 821px) {
@@ -429,8 +499,8 @@ button, a { cursor: pointer; }
     width: 52px;
     height: 52px;
     opacity: 0;
-    border: 1px solid rgba(246, 242, 234, 0.18);
-    background: rgba(2, 3, 8, 0.34);
+    border: none;
+    background: transparent;
     transition:
       opacity 2.2s var(--ease) 1.2s,
       transform 2.2s var(--ease) 1.2s,
@@ -441,12 +511,12 @@ button, a { cursor: pointer; }
   .world__return:hover,
   .world__return:focus-visible {
     opacity: 1;
-    border-color: rgba(216, 192, 168, 0.72);
-    background: rgba(18, 15, 28, 0.72);
+    border-color: transparent;
+    background: transparent;
     outline: none;
   }
   .world__return:focus-visible {
-    box-shadow: 0 0 0 3px rgba(216, 192, 168, 0.22);
+    box-shadow: 0 0 18px rgba(216, 192, 168, 0.32);
   }
   .world__head {
     top: clamp(96px, 14vh, 140px);
@@ -486,10 +556,10 @@ button, a { cursor: pointer; }
     gap: 7px;
     z-index: 2;
     min-width: 72px;
-    padding: 6px 9px;
-    border: 1px solid rgba(216, 192, 168, 0.16);
-    background: rgba(2, 3, 8, 0.46);
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+    padding: 4px 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
   }
   .moon-label::before {
     content: "";
@@ -507,8 +577,9 @@ button, a { cursor: pointer; }
   }
   .moon-label:hover,
   .moon-label.is-active {
-    border-color: rgba(216, 192, 168, 0.46);
-    background: rgba(18, 15, 28, 0.72);
+    border-color: transparent;
+    background: transparent;
+    text-shadow: 0 0 18px rgba(216, 192, 168, 0.45);
   }
   .moon-label:hover .moon-label__text,
   .moon-label.is-active .moon-label__text {

@@ -39,6 +39,26 @@ let activeProject = null;
 let activeMoonIdx = -1;
 let hasDeparted = false;
 
+function containLabel(el, x, y, padding = 14) {
+  el.style.left = `${x}px`;
+  el.style.top = `${y}px`;
+  const rect = el.getBoundingClientRect();
+  const shiftX = rect.left < padding
+    ? padding - rect.left
+    : rect.right > window.innerWidth - padding
+      ? window.innerWidth - padding - rect.right
+      : 0;
+  const shiftY = rect.top < padding
+    ? padding - rect.top
+    : rect.bottom > window.innerHeight - padding
+      ? window.innerHeight - padding - rect.bottom
+      : 0;
+  if (shiftX || shiftY) {
+    el.style.left = `${x + shiftX}px`;
+    el.style.top = `${y + shiftY}px`;
+  }
+}
+
 /* ----------------- Star labels ----------------- */
 const starLabelEls = new Map();
 const hideStarLabel = (el) => {
@@ -77,8 +97,7 @@ scene.onLabels((systems) => {
     const dist = sys.worldPos.distanceTo(scene.camPos);
     const op = Math.max(0, Math.min(1, (40 - dist) / 18));
     if (op < 0.05) { hideStarLabel(el); return; }
-    el.style.left = `${s.x}px`;
-    el.style.top = `${s.y}px`;
+    containLabel(el, s.x, s.y);
     el.style.opacity = op;
     el.classList.add("is-shown");
     // Highlight se hover
@@ -111,8 +130,7 @@ scene.onArchiveLabels((stars) => {
     if (!el) return;
     const s = scene.projectToScreen(st.pos);
     if (s.behind) { el.classList.remove("is-shown"); return; }
-    el.style.left = `${s.x}px`;
-    el.style.top = `${s.y + 18}px`;
+    containLabel(el, s.x, s.y + 18);
     el.classList.add("is-shown");
   });
 });
@@ -142,18 +160,22 @@ scene.onMoonLabels((moons) => {
       const dx = s.x - window.innerWidth * 0.5;
       const dy = s.y - window.innerHeight * 0.5;
       const distance = Math.hypot(dx, dy) || 1;
-      const offset = 20;
+      const offset = 64;
       let x = Math.min(window.innerWidth - 72, Math.max(72, s.x + dx / distance * offset));
-      const y = Math.min(window.innerHeight - 72, Math.max(72, s.y + dy / distance * offset));
+      const fan = (i - (moons.length - 1) * 0.5) * 22;
+      const y = Math.min(window.innerHeight - 72, Math.max(72, s.y + dy / distance * offset + fan));
       const editorialLeft = Math.max(440, window.innerWidth * 0.28);
       const editorialRight = window.innerWidth * 0.62;
-      if (x < editorialLeft && y > 100 && y < 380) x = editorialLeft;
-      if (x > editorialRight && y > 220 && y < 700) x = editorialRight;
-      el.style.left = `${x}px`;
-      el.style.top = `${y}px`;
+      x = Math.min(editorialRight, Math.max(editorialLeft, x));
+      containLabel(el, x, y);
     } else {
-      el.style.left = `${s.x}px`;
-      el.style.top = `${s.y}px`;
+      const dx = s.x - window.innerWidth * 0.5;
+      const dy = s.y - window.innerHeight * 0.48;
+      const distance = Math.hypot(dx, dy) || 1;
+      const offset = 34;
+      const x = s.x + dx / distance * offset;
+      const y = s.y + dy / distance * offset;
+      containLabel(el, x, Math.min(window.innerHeight - 300, Math.max(150, y)), 12);
     }
     el.classList.add("is-shown");
     el.classList.toggle("is-active", i === activeMoonIdx);
@@ -229,6 +251,8 @@ scene.onEnter((project) => {
   scripture.classList.remove("is-shown");
   scripture.innerHTML = "";
   world.classList.add("is-visible");
+  signature.classList.add("is-world-hidden");
+  foot.classList.add("is-world-hidden");
   starLabels.style.opacity = "0";
   archiveLabels.style.opacity = "0";
   setTimeout(() => selectMoon(0), 2000);
@@ -238,6 +262,8 @@ scene.onExit(() => {
   // Não esconder tudo de uma vez — fade gradual sincronizado com a câmera
   scripture.classList.remove("is-shown");
   activeMoonIdx = -1;
+  signature.classList.remove("is-world-hidden");
+  foot.classList.remove("is-world-hidden");
   // O world (overlay) começa a sumir imediatamente mas com CSS transition de 2.5s
   world.classList.remove("is-visible");
   // Labels das estrelas reaparecem gradualmente após 1.5s (quando a galáxia já está visível)
