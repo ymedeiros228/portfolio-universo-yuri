@@ -34,8 +34,6 @@ function setAccessibilityState(inWorld) {
 }
 setAccessibilityState(false);
 
-setTimeout(() => veil && veil.classList.add("is-hidden"), 5000); // fallback
-
 let scene;
 try {
   scene = new Universe($("#scene-root"));
@@ -43,6 +41,56 @@ try {
   console.error("[Universo] init failed:", err);
   if (veil) veil.classList.add("is-hidden");
 }
+
+const openingStartedAt = performance.now();
+const openingReduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+let openingFrameReady = false;
+let openingFontsReady = !document.fonts;
+let openingRevealed = false;
+let openingCheckTimer;
+const isOpeningReduced = () =>
+  openingReduced.matches || getComputedStyle(veil).transitionDuration === "0.00001s";
+
+function revealOpening(reason) {
+  if (openingRevealed) return;
+  openingRevealed = true;
+  clearInterval(openingCheckTimer);
+  performance.mark(`opening-${reason}`);
+  document.documentElement.classList.add("opening-ready");
+  veil?.classList.add("is-hidden");
+  const reduced = isOpeningReduced();
+  const sequence = reduced
+    ? { signature: 80, footer: 140, whisper: 220 }
+    : { signature: 4800, footer: 5400, whisper: 6200 };
+  setTimeout(() => signature.classList.add("is-visible"), sequence.signature);
+  setTimeout(() => foot.classList.add("is-visible"), sequence.footer);
+  setTimeout(() => whisper.classList.add("is-visible"), sequence.whisper);
+  setTimeout(() => whisper.classList.add("is-gone"), reduced ? 1400 : 14000);
+}
+
+function maybeRevealOpening() {
+  const reduced = isOpeningReduced();
+  if (openingFrameReady && (reduced || openingFontsReady) &&
+      performance.now() - openingStartedAt >= (reduced ? 160 : 700)) {
+    revealOpening("ready");
+  }
+}
+openingReduced.addEventListener?.("change", maybeRevealOpening);
+setTimeout(() => {
+  if (openingFrameReady && isOpeningReduced()) revealOpening("reduced-ready");
+}, 900);
+
+scene?.onFirstFrame(() => {
+  openingFrameReady = true;
+  performance.mark("three-first-frame");
+  maybeRevealOpening();
+});
+document.fonts?.ready?.then(() => {
+  openingFontsReady = true;
+  maybeRevealOpening();
+});
+setTimeout(() => revealOpening("safety"), 5000);
+openingCheckTimer = setInterval(maybeRevealOpening, 100);
 
 let activeProject = null;
 let activeMoonIdx = -1;
@@ -133,7 +181,8 @@ const archiveLabelEls = ARCHIVE.map((a) => {
 });
 
 scene.onArchiveLabels((stars) => {
-  if (!stars.length) { archiveLabelEls.forEach(el => el.classList.remove("is-shown")); return; }
+    if (!stars.length) { archiveLabelEls.forEach(el => el.classList.remove("is-shown")); return; }
+  const pointer = scene.getPointerScreen?.();
   stars.forEach((st, i) => {
     const el = archiveLabelEls[i];
     if (!el) return;
@@ -141,6 +190,7 @@ scene.onArchiveLabels((stars) => {
     if (s.behind) { el.classList.remove("is-shown"); return; }
     containLabel(el, s.x, s.y + 18);
     el.classList.add("is-shown");
+    el.classList.toggle("is-near", pointer && Math.hypot(s.x - pointer.x, s.y + 18 - pointer.y) < 110);
   });
 });
 
@@ -332,15 +382,6 @@ function renderScripture(m, project) {
   }
   return "";
 }
-
-/* ----------------- Veil + reveal ----------------- */
-window.addEventListener("load", () => {
-  setTimeout(() => veil.classList.add("is-hidden"), 600);
-  setTimeout(() => signature.classList.add("is-visible"), 1800);
-  setTimeout(() => foot.classList.add("is-visible"), 2000);
-  setTimeout(() => whisper.classList.add("is-visible"), 2800);
-  setTimeout(() => whisper.classList.add("is-gone"), 14000);
-});
 
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && world.classList.contains("is-visible")) scene.exitProject();

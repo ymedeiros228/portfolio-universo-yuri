@@ -42,6 +42,10 @@ export class Universe {
     this.clock = new THREE.Clock();
     this.pointer = new THREE.Vector2();
     this.pointerTarget = new THREE.Vector2();
+    this._hoverNdc = new THREE.Vector2();
+    this._projectVector = new THREE.Vector3();
+    this._hasRendered = false;
+    this._onFirstFrame = null;
     this.drag = { active: false, x: 0, y: 0 };
     this.raycaster = new THREE.Raycaster();
     this._pointerScreen = null;
@@ -964,11 +968,11 @@ export class Universe {
 
   _hoverRaycast() {
     if (!this._pointerScreen) return;
-    const ndc = new THREE.Vector2(
+    this._hoverNdc.set(
       (this._pointerScreen.x / window.innerWidth) * 2 - 1,
       -((this._pointerScreen.y / window.innerHeight) * 2 - 1)
     );
-    this.raycaster.setFromCamera(ndc, this.camera);
+    this.raycaster.setFromCamera(this._hoverNdc, this.camera);
     const meshes = this.systems.flatMap(s => [s.sun, s.sprite].filter(Boolean));
     const hits = this.raycaster.intersectObjects(meshes, false);
     this._hoveredSys = null;
@@ -1002,6 +1006,11 @@ export class Universe {
   /* ============================ API ============================ */
 
   onLabels(fn) { this._labelsFn = fn; }
+  onFirstFrame(fn) {
+    this._onFirstFrame = fn;
+    if (this._hasRendered) fn();
+  }
+  getPointerScreen() { return this._pointerScreen; }
   getHoveredId() { return this._hoveredSys ? this._hoveredSys.project.id : null; }
   onMoonLabels(fn) { this._moonLabelsFn = fn; }
   onConstellationLabels(fn) { this._constLabelsFn = fn; }
@@ -1190,9 +1199,17 @@ export class Universe {
     if (this._labelsFn) this._labelsFn(this.mode === "galaxy" ? this.systems : []);
     if (this._moonLabelsFn) this._moonLabelsFn(this.mode === "project" ? this.moons : []);
     if (this._constLabelsFn) this._constLabelsFn(this.mode === "project" ? (this.active ? this.active.project.constellation : []) : [], this._constellationStars);
-    if (this._archiveLabelsFn) this._archiveLabelsFn(this.mode === "galaxy" ? this.archiveStars : []);
+    if (this._archiveLabelsFn) {
+      this._archiveLabelsFn(
+        this.mode === "galaxy" || this.mode === "idle" ? this.archiveStars : []
+      );
+    }
 
     this.composer.render();
+    if (!this._hasRendered) {
+      this._hasRendered = true;
+      this._onFirstFrame?.();
+    }
   }
 
   _organicOffset(t) {
@@ -1376,7 +1393,7 @@ export class Universe {
   }
 
   projectToScreen(v) {
-    const p = v.clone().project(this.camera);
+    const p = this._projectVector.copy(v).project(this.camera);
     return { x: (p.x * 0.5 + 0.5) * window.innerWidth, y: (-p.y * 0.5 + 0.5) * window.innerHeight, behind: p.z > 1 };
   }
 }
