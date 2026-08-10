@@ -13,6 +13,18 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { PROJECTS, ABOUT, ARCHIVE } from "./projects.js";
 
 const TAU = Math.PI * 2;
+// Braços logarítmicos assimétricos — base da composição espiral (galáxia e poeira)
+const SPIRAL_ARMS = [
+  { offset: 0.0, pitch: 0.42, width: 1.0, weight: 0.42 },
+  { offset: 3.05, pitch: 0.47, width: 1.2, weight: 0.38 },
+  { offset: 1.55, pitch: 0.38, width: 1.6, weight: 0.20 },
+];
+// Sorteio ponderado: braços desiguais evitam simetria perfeita
+const pickArm = () => {
+  let k = Math.random();
+  for (const arm of SPIRAL_ARMS) { k -= arm.weight; if (k <= 0) return arm; }
+  return SPIRAL_ARMS[0];
+};
 const lerp = (a, b, t) => a + (b - a) * t;
 const damp = (a, b, lambda, dt) => lerp(a, b, 1 - Math.exp(-lambda * dt));
 const easeOrganic = (k) => {
@@ -36,7 +48,7 @@ export class Universe {
     this._hoveredSys = null;
     this._dragMoved = false;
     this._yaw = 0.0;
-    this._pitch = 0.22;
+    this._pitch = 0.46;
     this._radius = 28.0;
     this._fov = 52;
     this._fovTarget = 52;
@@ -342,33 +354,31 @@ export class Universe {
         z = r * Math.sin(phi) * Math.sin(theta) + noise2(theta * 2, phi) * 0.5;
         radius = r;
       } else {
-        // ===== MASSA ORGÂNICA: distribuição por campo de ruído 3D =====
-        // Sem braços, sem espiral, sem simetria — apenas densidade por FBM
+        // ===== BRAÇOS ESPIRAIS SUAVES — insinuados pela densidade, nunca linhas =====
         const t = Math.pow((rand - 0.05) / 0.95, 0.55);
         radius = t * R;
-        const angle = Math.random() * TAU;
+        const arm = pickArm();
+        // Espiral logarítmica: theta cresce com ln(raio)
+        const spiralTheta = arm.offset + Math.log(Math.max(radius, 1.2) / 1.2) / arm.pitch;
+        // Dispersão em torno do braço — cresce com o raio (braços difusos, não riscos)
+        const spread = 0.20 + t * 0.40;
+        const scatter = (Math.random() + Math.random() + Math.random() - 1.5) * spread;
+        // Perturbação FBM: quebra a simetria procedural do braço
+        const warp = fbm2(Math.cos(spiralTheta) * radius * 0.09, Math.sin(spiralTheta) * radius * 0.09) * 0.45;
+        const angle = spiralTheta + scatter * arm.width + warp;
 
-        // Campo de densidade 3D — determina se esta partícula sobrevive
+        // Campo de densidade 3D — mantém regiões densas e vazios orgânicos
         const density = fbm3(Math.cos(angle) * radius * 0.08, Math.sin(angle) * radius * 0.08, radius * 0.05);
-        // Rejeitar partículas em regiões de baixa densidade (cria vazios)
+        let ang = angle, rad = radius;
         if (density < -0.15 && Math.random() < 0.6) {
-          // Vazio — reposicionar em região densa
-          const newAngle = Math.random() * TAU;
-          const newR = radius * (0.7 + Math.random() * 0.6);
-          const newDensity = fbm3(Math.cos(newAngle) * newR * 0.08, Math.sin(newAngle) * newR * 0.08, newR * 0.05);
-          if (newDensity > density) {
-            x = Math.cos(newAngle) * newR;
-            z = Math.sin(newAngle) * newR;
-            radius = newR;
-          } else {
-            x = Math.cos(angle) * radius;
-            z = Math.sin(angle) * radius;
-          }
-        } else {
-          // Posição base + perturbação orgânica grande
-          x = Math.cos(angle) * radius + (noise2(radius * 0.1, angle * 2) * 3.0);
-          z = Math.sin(angle) * radius + (noise2(radius * 0.15, angle * 3) * 3.0);
+          // Vazio — desloca ao longo do braço, sem sair da estrutura
+          ang = angle + (Math.random() - 0.5) * 0.9;
+          rad = radius * (0.8 + Math.random() * 0.4);
         }
+        radius = rad;
+        // Deriva radial orgânica — dissolve a borda do braço
+        x = Math.cos(ang) * rad + noise2(rad * 0.1, ang * 2) * (0.5 + t * 1.2);
+        z = Math.sin(ang) * rad + noise2(rad * 0.15, ang * 3) * (0.5 + t * 1.2);
 
         // Y: espessura orgânica — varia com noise, não é uniforme
         const yNoise = fbm2(x * 0.08, z * 0.08);
@@ -520,8 +530,13 @@ export class Universe {
       // Lanes escuras seguem padrões de noise — entre regiões brilhantes
       const laneNoise = fbm2(Math.cos(angle) * r * 0.06, Math.sin(angle) * r * 0.06);
       if (laneNoise > 0.1) { i--; continue; } // só em regiões de lane
-      const x = Math.cos(angle) * r + noise2(r * 0.2, angle) * 2;
-      const z = Math.sin(angle) * r + noise2(r * 0.25, angle) * 2;
+      // Lanes acompanham a borda interna dos braços
+      const arm = pickArm();
+      const spiralTheta = arm.offset + Math.log(Math.max(r, 1.2) / 1.2) / arm.pitch;
+      const lane = spiralTheta - 0.30 + (Math.random() - 0.5) * 0.35 * arm.width
+        + fbm2(Math.cos(spiralTheta) * r * 0.09, Math.sin(spiralTheta) * r * 0.09) * 0.4;
+      const x = Math.cos(lane) * r + noise2(r * 0.2, lane) * 2;
+      const z = Math.sin(lane) * r + noise2(r * 0.25, lane) * 2;
       const y = noise2(x * 0.1, z * 0.1) * 1.0;
       dPos[i*3] = x; dPos[i*3+1] = y; dPos[i*3+2] = z;
       // Cor escura — azul-marrom muito escuro
@@ -542,7 +557,7 @@ export class Universe {
         gl_PointSize = aSize * uPx * (300.0 / -mv.z); gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `varying vec3 vC;
         void main(){ vec2 uv = gl_PointCoord - 0.5; float d = length(uv);
-        float a = exp(-d * 2.5) * 0.2;
+        float a = exp(-d * 2.5) * 0.055;
         gl_FragColor = vec4(vC, a); }`,
       transparent: true, depthWrite: false, blending: THREE.NormalBlending, opacity: 1.0
     });
@@ -567,10 +582,14 @@ export class Universe {
     for (let i = 0; i < N; i++) {
       const t = Math.pow(Math.random(), 0.45);
       const radius = t * R;
-      const angle = Math.random() * TAU;
-      // Distribuição orgânica — sem seguir braços
-      const x = Math.cos(angle) * radius + noise2(radius * 0.1, angle) * 3.0;
-      const z = Math.sin(angle) * radius + noise2(radius * 0.15, angle) * 3.0;
+      // Poeira acompanha os braços — dust lanes na borda interna de cada braço
+      const arm = pickArm();
+      const spiralTheta = arm.offset + Math.log(Math.max(radius, 1.2) / 1.2) / arm.pitch;
+      const scatter = (Math.random() + Math.random() + Math.random() - 1.5) * (0.18 + t * 0.34);
+      const warp = fbm2(Math.cos(spiralTheta) * radius * 0.09, Math.sin(spiralTheta) * radius * 0.09) * 0.45;
+      const angle = spiralTheta - 0.16 + scatter * arm.width + warp;
+      const x = Math.cos(angle) * radius + noise2(radius * 0.1, angle) * (0.5 + t * 1.1);
+      const z = Math.sin(angle) * radius + noise2(radius * 0.15, angle) * (0.5 + t * 1.1);
       const y = (Math.random() - 0.5) * (0.5 + (1 - t) * 1.5) + fbm2(x * 0.08, z * 0.08) * 0.8;
       pos[i*3] = x; pos[i*3+1] = y; pos[i*3+2] = z;
       // Cores: dourado suave → violeta → azul
@@ -1083,7 +1102,7 @@ export class Universe {
     this.pointer.x = damp(this.pointer.x, this.pointerTarget.x, 1.8, dt);
     this.pointer.y = damp(this.pointer.y, this.pointerTarget.y, 1.8, dt);
     this._yaw += this._yawVel;
-    this._pitch = THREE.MathUtils.clamp(this._pitch + this._pitchVel, 0.08, 0.55);
+    this._pitch = THREE.MathUtils.clamp(this._pitch + this._pitchVel, 0.12, 0.8);
     // Inércia: decai mais devagar, parece física real
     this._yawVel = damp(this._yawVel, 0, 0.8, dt);
     this._pitchVel = damp(this._pitchVel, 0, 0.8, dt);
@@ -1128,7 +1147,7 @@ export class Universe {
     const org = this._organicOffset(t);
     const tx = Math.sin(yaw) * Math.cos(pitch) * r + org.x;
     const tz = Math.cos(yaw) * Math.cos(pitch) * r + org.z;
-    const ty = Math.sin(pitch) * r * 0.4 + 2.0 + org.y;
+    const ty = Math.sin(pitch) * r * 0.95 + 2.0 + org.y;
     // Damping mais lento — flutua como no espaço
     this.camPos.x = damp(this.camPos.x, tx, 0.7, dt);
     this.camPos.y = damp(this.camPos.y, ty, 0.7, dt);
@@ -1245,7 +1264,7 @@ export class Universe {
     this.camera.updateProjectionMatrix();
     // Câmera viaja de volta
     const yaw = this._yaw, pitch = this._pitch, r = this._radius;
-    const toPos = new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch) * r, Math.sin(pitch) * r * 0.4 + 2.0, Math.cos(yaw) * Math.cos(pitch) * r);
+    const toPos = new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch) * r, Math.sin(pitch) * r * 0.95 + 2.0, Math.cos(yaw) * Math.cos(pitch) * r);
     const toLook = new THREE.Vector3(0, 0, 0);
     this.camPos.lerpVectors(this._fromPos, toPos, ease);
     this.camLook.lerpVectors(this._fromLook, toLook, ease);
