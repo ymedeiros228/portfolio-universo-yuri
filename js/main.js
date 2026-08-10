@@ -25,6 +25,15 @@ const constLabels= $("#constellation-labels");
 const worldGithub= $("#world-github");
 const worldDemo  = $("#world-demo");
 
+function setAccessibilityState(inWorld) {
+  starLabels.setAttribute("aria-hidden", String(inWorld));
+  archiveLabels.setAttribute("aria-hidden", String(inWorld));
+  world.setAttribute("aria-hidden", String(!inWorld));
+  signature.setAttribute("aria-hidden", String(inWorld));
+  foot.setAttribute("aria-hidden", String(inWorld));
+}
+setAccessibilityState(false);
+
 setTimeout(() => veil && veil.classList.add("is-hidden"), 5000); // fallback
 
 let scene;
@@ -164,6 +173,15 @@ scene.onMoonLabels((moons) => {
       let x = Math.min(window.innerWidth - 72, Math.max(72, s.x + dx / distance * offset));
       const fan = (i - (moons.length - 1) * 0.5) * 22;
       const y = Math.min(window.innerHeight - 72, Math.max(72, s.y + dy / distance * offset + fan));
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const angle = (i / moons.length) * Math.PI * 2 - Math.PI * 0.5;
+        x = window.innerWidth * 0.5 + Math.cos(angle) * Math.min(230, window.innerWidth * 0.18);
+        const staticY = window.innerHeight * 0.5 + Math.sin(angle) * 150;
+        containLabel(el, x, staticY);
+        el.classList.add("is-shown");
+        el.classList.toggle("is-active", i === activeMoonIdx);
+        return;
+      }
       const editorialLeft = Math.max(440, window.innerWidth * 0.28);
       const editorialRight = window.innerWidth * 0.62;
       x = Math.min(editorialRight, Math.max(editorialLeft, x));
@@ -172,10 +190,13 @@ scene.onMoonLabels((moons) => {
       const dx = s.x - window.innerWidth * 0.5;
       const dy = s.y - window.innerHeight * 0.48;
       const distance = Math.hypot(dx, dy) || 1;
-      const offset = 34;
+      const offset = 74;
       const x = s.x + dx / distance * offset;
-      const y = s.y + dy / distance * offset;
-      containLabel(el, x, Math.min(window.innerHeight - 300, Math.max(150, y)), 12);
+      const baseY = s.y + dy / distance * offset;
+      const fan = (i - (moons.length - 1) * 0.5) * 24;
+      const clampedY = Math.min(window.innerHeight - 340, Math.max(150, baseY));
+      const y = clampedY + fan;
+      containLabel(el, x, y, 12);
     }
     el.classList.add("is-shown");
     el.classList.toggle("is-active", i === activeMoonIdx);
@@ -217,9 +238,15 @@ function depart() {
   whisper.classList.add("is-gone");
   scene.depart();
 }
-["pointerdown", "wheel", "keydown"].forEach(ev =>
+["pointerdown", "wheel"].forEach(ev =>
   window.addEventListener(ev, depart, { once: true, passive: true })
 );
+const departOnKey = (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  depart();
+  window.removeEventListener("keydown", departOnKey);
+};
+window.addEventListener("keydown", departOnKey);
 
 centerName.addEventListener("click", (e) => {
   if (!hasDeparted) {
@@ -251,6 +278,7 @@ scene.onEnter((project) => {
   scripture.classList.remove("is-shown");
   scripture.innerHTML = "";
   world.classList.add("is-visible");
+  setAccessibilityState(true);
   signature.classList.add("is-world-hidden");
   foot.classList.add("is-world-hidden");
   starLabels.style.opacity = "0";
@@ -266,6 +294,7 @@ scene.onExit(() => {
   foot.classList.remove("is-world-hidden");
   // O world (overlay) começa a sumir imediatamente mas com CSS transition de 2.5s
   world.classList.remove("is-visible");
+  setAccessibilityState(false);
   // Labels das estrelas reaparecem gradualmente após 1.5s (quando a galáxia já está visível)
   setTimeout(() => {
     starLabels.style.opacity = "1";

@@ -47,6 +47,9 @@ export class Universe {
     this._pointerScreen = null;
     this._hoveredSys = null;
     this._centerHovered = false;
+    this.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    this._motionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
+    this._motionMedia.addEventListener?.("change", (event) => { this.reducedMotion = event.matches; });
     this._dragMoved = false;
     this._yaw = 0.0;
     this._pitch = 0.46;
@@ -80,8 +83,8 @@ export class Universe {
 
   _initRenderer() {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-    // Pixel ratio máximo — render nativo em telas 4K/Retina
-    this.renderer.setPixelRatio(window.devicePixelRatio || 1);
+    // Evita multiplicar o custo de partículas e bloom em telas HiDPI.
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setClearColor(0x030617, 1);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -991,6 +994,7 @@ export class Universe {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.composer.setSize(window.innerWidth, window.innerHeight);
     this.gradePass.uniforms.uRes.value.set(window.innerWidth, window.innerHeight);
   }
@@ -1029,8 +1033,9 @@ export class Universe {
 
   _loop() {
     requestAnimationFrame(this._loop);
-    const t = this.clock.getElapsedTime();
-    const dt = Math.min(this.clock.getDelta(), 0.05);
+    const elapsed = this.clock.getElapsedTime();
+    const t = this.reducedMotion ? 0 : elapsed;
+    const dt = this.reducedMotion ? 0 : Math.min(this.clock.getDelta(), 0.05);
 
     this.starfield.material.uniforms.uTime.value = t;
     this.dust.material.uniforms.uTime.value = t;
@@ -1199,6 +1204,21 @@ export class Universe {
   }
 
   _camGalaxy(t, dt) {
+    if (this.reducedMotion) {
+      const yaw = this._yaw, pitch = this._pitch, r = this._radius;
+      this._introT = 1;
+      this.camPos.set(
+        Math.sin(yaw) * Math.cos(pitch) * r,
+        Math.sin(pitch) * r * 0.95 + 2.0,
+        Math.cos(yaw) * Math.cos(pitch) * r
+      );
+      this.camLook.set(0, 0, 0);
+      this.camera.position.copy(this.camPos);
+      this.camera.lookAt(this.camLook);
+      this.camera.fov = this._fovTarget;
+      this.camera.updateProjectionMatrix();
+      return;
+    }
     // Intro: câmera vem de longe e aproxima
     if (this._introT < 1) {
       this._introT = Math.min(1, this._introT + dt / this._introDur);
@@ -1226,7 +1246,9 @@ export class Universe {
   }
 
   _camTravel(t) {
-    const e = t - this._tStart, dur = 6.0, k = Math.min(1, e / dur), ease = easeOrganic(k);
+    const e = t - this._tStart, dur = 6.0;
+    const k = this.reducedMotion ? 1 : Math.min(1, e / dur);
+    const ease = this.reducedMotion ? 1 : easeOrganic(k);
     this.projectWorld.visible = true;
     this.projectWorld.position.copy(this.active.worldPos);
     const dest = this.active.worldPos.clone();
@@ -1274,7 +1296,8 @@ export class Universe {
   _camProject(t, dt) {
     const center = this.projectWorld.position.clone();
     // Órbita lenta e elíptica com offset orgânico
-    const a = t * 0.015, org = this._organicOffset(t);
+    const a = this.reducedMotion ? 0 : t * 0.015;
+    const org = this.reducedMotion ? { x: 0, y: 0, z: 0 } : this._organicOffset(t);
     const orbitR = 11.5;
     const ecc = 0.08;
     const toPos = center.clone().add(new THREE.Vector3(
@@ -1284,18 +1307,25 @@ export class Universe {
     ));
     const toLook = center.clone();
     // Damping suave — flutua como no espaço
-    this.camPos.x = damp(this.camPos.x, toPos.x, 0.6, dt);
-    this.camPos.y = damp(this.camPos.y, toPos.y, 0.6, dt);
-    this.camPos.z = damp(this.camPos.z, toPos.z, 0.6, dt);
-    this.camLook.x = damp(this.camLook.x, toLook.x, 1.0, dt);
-    this.camLook.y = damp(this.camLook.y, toLook.y, 1.0, dt);
-    this.camLook.z = damp(this.camLook.z, toLook.z, 1.0, dt);
+    if (this.reducedMotion) {
+      this.camPos.copy(toPos);
+      this.camLook.copy(toLook);
+    } else {
+      this.camPos.x = damp(this.camPos.x, toPos.x, 0.6, dt);
+      this.camPos.y = damp(this.camPos.y, toPos.y, 0.6, dt);
+      this.camPos.z = damp(this.camPos.z, toPos.z, 0.6, dt);
+      this.camLook.x = damp(this.camLook.x, toLook.x, 1.0, dt);
+      this.camLook.y = damp(this.camLook.y, toLook.y, 1.0, dt);
+      this.camLook.z = damp(this.camLook.z, toLook.z, 1.0, dt);
+    }
     this.camera.position.copy(this.camPos);
     this.camera.lookAt(this.camLook);
   }
 
   _camReturn(t) {
-    const e = t - this._tStart, dur = 5.5, k = Math.min(1, e / dur), ease = easeOrganic(k);
+    const e = t - this._tStart, dur = 5.5;
+    const k = this.reducedMotion ? 1 : Math.min(1, e / dur);
+    const ease = this.reducedMotion ? 1 : easeOrganic(k);
     // Galáxia e fundo reaparecem gradualmente
     this.systemsGroup.visible = true;
     this.galaxy.visible = true;

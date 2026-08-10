@@ -39,6 +39,12 @@ button, a { cursor: pointer; }
 
 #scene-root { position: fixed; inset: 0; z-index: 0; pointer-events: auto; }
 #scene-root canvas { display: block; }
+button:focus-visible,
+a:focus-visible {
+  outline: 1px solid rgba(216, 192, 168, 0.9);
+  outline-offset: 5px;
+  box-shadow: 0 0 0 3px rgba(144, 124, 214, 0.18), 0 0 18px rgba(216, 192, 168, 0.28);
+}
 
 /* ---------- Véu ---------- */
 .veil {
@@ -100,7 +106,7 @@ button, a { cursor: pointer; }
   letter-spacing: 0.34em;
   text-indent: 0.34em;
   text-transform: uppercase;
-  color: rgba(246, 242, 234, 0.24);
+  color: rgba(246, 242, 234, 0.42);
   font-weight: 300;
   animation: fadeIn 4s var(--ease) 1.5s both;
   max-width: 600px;
@@ -108,7 +114,7 @@ button, a { cursor: pointer; }
 .center-name__hint {
   margin-top: 16px;
   font-size: 7px; letter-spacing: 0.38em; text-transform: uppercase;
-  color: rgba(210,180,160,0.28); font-weight: 400; opacity: 0;
+  color: rgba(210,180,160,0.5); font-weight: 400; opacity: 0;
   transition: opacity 1.6s var(--ease);
   animation: hintPulse 5s ease-in-out 4s infinite;
 }
@@ -167,14 +173,14 @@ button, a { cursor: pointer; }
 }
 .foot__link {
   font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
-  color: rgba(246,242,234,0.22); font-weight: 400; text-decoration: none;
+  color: rgba(246,242,234,0.46); font-weight: 400; text-decoration: none;
   display: inline-flex; align-items: center; gap: 7px;
   transition: color 0.8s var(--ease);
 }
 .foot__link:hover { color: var(--gold); }
 .foot__link span { font-size: 10px; opacity: 0.5; }
 .foot__sep { width: 1px; height: 10px; background: rgba(246,242,234,0.06); }
-.foot__loc { font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(246,242,234,0.18); font-weight: 400; }
+.foot__loc { font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(246,242,234,0.38); font-weight: 400; }
 
 /* ---------- Rótulos das estrelas ---------- */
 .star-labels { position: fixed; inset: 0; z-index: 22; pointer-events: none; }
@@ -213,7 +219,7 @@ button, a { cursor: pointer; }
 .archive-label.is-shown { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
 .archive-label__name {
   font-size: 7px; letter-spacing: 0.42em; text-transform: uppercase;
-  color: rgba(246,242,234,0.1); font-weight: 400; white-space: nowrap;
+  color: rgba(246,242,234,0.35); font-weight: 400; white-space: nowrap;
   transition: color 0.8s var(--ease);
   text-shadow: 0 1px 12px rgba(0,0,0,0.95);
 }
@@ -326,7 +332,7 @@ button, a { cursor: pointer; }
 .moon-label.is-shown { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
 .moon-label__text {
   font-size: 8px; letter-spacing: 0.4em; text-transform: uppercase;
-  color: rgba(246, 242, 234, 0.28); font-weight: 300;
+  color: rgba(246, 242, 234, 0.52); font-weight: 300;
   transition: color 1s var(--ease), letter-spacing 1s var(--ease);
   text-shadow: 0 1px 12px rgba(0,0,0,0.98);
 }
@@ -419,6 +425,11 @@ button, a { cursor: pointer; }
 .world__scripture .contact-link span { font-size: 12px; opacity: 0.4; }
 
 @media (max-width: 820px) {
+  .world__return {
+    top: 18px;
+    left: auto;
+    right: 22px;
+  }
   .world__head { top: 66px; left: 22px; max-width: 85vw; }
   .world.is-visible .world__head { transform: none; }
   .world__name { font-size: 28px; }
@@ -492,6 +503,17 @@ button, a { cursor: pointer; }
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @media (min-width: 821px) {
   .world__return {
     top: 42px;
@@ -513,7 +535,6 @@ button, a { cursor: pointer; }
     opacity: 1;
     border-color: transparent;
     background: transparent;
-    outline: none;
   }
   .world__return:focus-visible {
     box-shadow: 0 0 18px rgba(216, 192, 168, 0.32);
