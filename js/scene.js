@@ -392,13 +392,14 @@ export class Universe {
       const c = sampleGradient(tr + colorNoise);
       // Variação de brilho apenas (não matiz)
       const brightVar = (Math.random() - 0.5) * 0.05;
-      const coreSoftness = 0.45 + Math.min(1, tr * 3.5) * 0.55;
+      const coreSoftness = 0.12 + Math.min(1, tr * 3.5) * 0.48;
       col[i*3] = Math.max(0, c.r * coreSoftness + brightVar);
       col[i*3+1] = Math.max(0, c.g * coreSoftness + brightVar);
       col[i*3+2] = Math.max(0, c.b * coreSoftness + brightVar);
 
       // ===== TAMANHO: grande e difuso — partículas se fundem em nuvens =====
       let sz = (1.8 + Math.random() * 3.0) * (1.45 - tr * 0.75);
+      if (tr < 0.22) sz *= 0.65;
       if (Math.random() < 0.008) sz *= 2.5; // estrelas brilhantes raras
       if (Math.random() < 0.002) sz *= 4.0; // supergigantes muito raras
       siz[i] = sz;
@@ -484,7 +485,7 @@ export class Universe {
     };
     // Sprite 1: núcleo interno — branco quente → dourado (suave)
     const tex1 = makeGlowTexture([
-      [0.0, "rgba(255, 248, 235, 0.14)"],
+      [0.0, "rgba(255, 248, 235, 0.08)"],
       [0.12, "rgba(242, 211, 160, 0.11)"],
       [0.35, "rgba(165, 135, 170, 0.06)"],
       [0.62, "rgba(75, 80, 145, 0.018)"],
@@ -507,7 +508,7 @@ export class Universe {
     ]);
     this.coreGlows = [];
     const glowConfigs = [
-      { tex: tex1, scale: 8, op: 0.18 },
+      { tex: tex1, scale: 7, op: 0.08 },
       { tex: tex2, scale: 18, op: 0.12 },
       { tex: tex3, scale: 32, op: 0.07 },
     ];
