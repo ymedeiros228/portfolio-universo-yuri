@@ -77,6 +77,7 @@ button, a { cursor: pointer; }
   to { opacity: 1; transform: translate(-50%, calc(-50% - 8vh)) scale(1); filter: blur(0); }
 }
 .center-name.is-fading {
+  animation: none;
   opacity: 0;
   transform: translate(-50%, calc(-50% - 8vh)) scale(0.88);
   filter: blur(16px);
@@ -215,6 +216,32 @@ button, a { cursor: pointer; }
   transition: opacity 2.2s var(--ease), visibility 2.2s var(--ease);
 }
 .world.is-visible { opacity: 1; visibility: visible; pointer-events: auto; }
+
+@media (min-width: 821px) {
+  .world::before {
+    content: "";
+    position: fixed; inset: 0;
+    z-index: 0; pointer-events: none;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(2, 3, 8, 0.78) 0%,
+        rgba(2, 3, 8, 0.48) 25%,
+        transparent 43%,
+        transparent 57%,
+        rgba(2, 3, 8, 0.48) 75%,
+        rgba(2, 3, 8, 0.78) 100%
+      );
+  }
+  .world__return,
+  .world__head,
+  .moon-labels,
+  .constellation-labels,
+  .world__scripture,
+  .world__links {
+    z-index: 1;
+  }
+}
 
 .world__return {
   position: fixed; top: 40px; left: 40px;
@@ -393,4 +420,108 @@ button, a { cursor: pointer; }
   .world__link { font-size: 9px; letter-spacing: 0.32em; }
   .signature, .foot { left: 22px; right: 22px; justify-content: center; gap: 12px; }
   .foot__loc { display: none; }
+}
+
+@media (min-width: 821px) {
+  .world__return {
+    top: 42px;
+    left: 52px;
+    width: 52px;
+    height: 52px;
+    opacity: 0;
+    border: 1px solid rgba(246, 242, 234, 0.18);
+    background: rgba(2, 3, 8, 0.34);
+    transition:
+      opacity 2.2s var(--ease) 1.2s,
+      transform 2.2s var(--ease) 1.2s,
+      border-color 0.8s var(--ease),
+      background 0.8s var(--ease);
+  }
+  .world.is-visible .world__return { opacity: 0.78; }
+  .world__return:hover,
+  .world__return:focus-visible {
+    opacity: 1;
+    border-color: rgba(216, 192, 168, 0.72);
+    background: rgba(18, 15, 28, 0.72);
+    outline: none;
+  }
+  .world__return:focus-visible {
+    box-shadow: 0 0 0 3px rgba(216, 192, 168, 0.22);
+  }
+  .world__head {
+    top: clamp(96px, 14vh, 140px);
+    left: clamp(52px, 7vw, 112px);
+    max-width: 300px;
+  }
+  .world__scripture {
+    right: clamp(52px, 7vw, 112px);
+    width: min(360px, 27vw);
+    max-width: none;
+    padding: 28px 0;
+  }
+  .world__scripture::before {
+    width: 48px;
+    margin-bottom: 28px;
+  }
+  .world__scripture h3 {
+    font-size: 26px;
+    color: rgba(216, 192, 168, 0.94);
+    margin-bottom: 22px;
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.72);
+  }
+  .world__scripture p {
+    color: rgba(246, 242, 234, 0.86);
+    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.9);
+  }
+  .world__scripture li {
+    color: rgba(246, 242, 234, 0.68);
+  }
+  .world__scripture .stat__num {
+    color: rgba(216, 192, 168, 0.9);
+  }
+  .world__scripture .stat__label {
+    color: rgba(246, 242, 234, 0.52);
+  }
+  .moon-label {
+    gap: 7px;
+    z-index: 2;
+    min-width: 72px;
+    padding: 6px 9px;
+    border: 1px solid rgba(216, 192, 168, 0.16);
+    background: rgba(2, 3, 8, 0.46);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  }
+  .moon-label::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border: 1px solid rgba(216, 192, 168, 0.7);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(216, 192, 168, 0.35);
+  }
+  .moon-label__text {
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    color: rgba(246, 242, 234, 0.72);
+    text-shadow: 0 1px 14px rgba(0, 0, 0, 1);
+  }
+  .moon-label:hover,
+  .moon-label.is-active {
+    border-color: rgba(216, 192, 168, 0.46);
+    background: rgba(18, 15, 28, 0.72);
+  }
+  .moon-label:hover .moon-label__text,
+  .moon-label.is-active .moon-label__text {
+    color: var(--gold);
+  }
+  .world__links {
+    bottom: clamp(34px, 6vh, 58px);
+  }
+  .world__link {
+    color: rgba(246, 242, 234, 0.62);
+  }
+  .world__link:focus-visible {
+    outline: 1px solid rgba(216, 192, 168, 0.72);
+    outline-offset: 8px;
+  }
 }

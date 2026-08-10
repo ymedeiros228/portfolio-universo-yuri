@@ -138,8 +138,23 @@ scene.onMoonLabels((moons) => {
     if (!el) return;
     const s = scene.projectToScreen(m.worldPos);
     if (s.behind) { el.classList.remove("is-shown"); return; }
-    el.style.left = `${s.x}px`;
-    el.style.top = `${s.y}px`;
+    if (window.innerWidth > 820) {
+      const dx = s.x - window.innerWidth * 0.5;
+      const dy = s.y - window.innerHeight * 0.5;
+      const distance = Math.hypot(dx, dy) || 1;
+      const offset = 20;
+      let x = Math.min(window.innerWidth - 72, Math.max(72, s.x + dx / distance * offset));
+      const y = Math.min(window.innerHeight - 72, Math.max(72, s.y + dy / distance * offset));
+      const editorialLeft = Math.max(440, window.innerWidth * 0.28);
+      const editorialRight = window.innerWidth * 0.62;
+      if (x < editorialLeft && y > 100 && y < 380) x = editorialLeft;
+      if (x > editorialRight && y > 220 && y < 700) x = editorialRight;
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+    } else {
+      el.style.left = `${s.x}px`;
+      el.style.top = `${s.y}px`;
+    }
     el.classList.add("is-shown");
     el.classList.toggle("is-active", i === activeMoonIdx);
   });

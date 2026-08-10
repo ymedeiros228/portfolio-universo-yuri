@@ -875,8 +875,9 @@ export class Universe {
     this.planetMat.uniforms.uAccent.value = new THREE.Color(project.accent);
     this.heroHalo.material.uniforms.uColor.value = new THREE.Color(project.accent);
     const pSize = project.planet.size;
-    this.heroPlanet.scale.setScalar(pSize / 2.2);
-    this.heroHalo.scale.setScalar(pSize / 2.2);
+    const planetScale = window.innerWidth > 820 ? pSize / 3.4 : pSize / 2.2;
+    this.heroPlanet.scale.setScalar(planetScale);
+    this.heroHalo.scale.setScalar(planetScale);
     const moonCount = project.moons.length;
     project.moons.forEach((m, i) => {
       const radius = 4.6 + i * 0.65;
