@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#020308" />
+  <title>Yuri Medeiros — O Universo de Yuri</title>
+  <meta name="description" content="Yuri Medeiros — desenvolvedor full-stack. Uma experiência digital: o visitante não entra em um site, explora um universo." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+  <div id="scene-root" aria-hidden="true"></div>
+
+  <!-- O nome vive no centro da galáxia. Clicar mergulha em "Sobre". -->
+  <button class="center-name" id="center-name" type="button" aria-label="Entrar — Sobre Yuri">
+    <h1 class="center-name__title">YURI MEDEIROS</h1>
+    <p class="center-name__phrase">Ciência da Computação · Full-stack · Saúde pública · GIS · IA</p>
+    <span class="center-name__hint">toque para mergulhar</span>
+  </button>
+
+  <!-- Assinatura -->
+  <div class="signature" id="signature" aria-hidden="true">
+    <span class="signature__dot"></span>
+    <span>O Universo de Yuri</span>
+  </div>
+
+  <!-- Rodapé -->
+  <footer class="foot" id="foot" aria-hidden="true">
+    <a class="foot__link" href="https://github.com/ymedeiros228" target="_blank" rel="noopener">GitHub <span>↗</span></a>
+    <span class="foot__sep"></span>
+    <a class="foot__link" href="https://www.linkedin.com/in/yuri-medeiros-1071533b4/" target="_blank" rel="noopener">LinkedIn <span>↗</span></a>
+    <span class="foot__sep"></span>
+    <span class="foot__loc">Teresina — PI, Brasil</span>
+  </footer>
+
+  <!-- Dica etérea -->
+  <div class="whisper" id="whisper">
+    <span class="whisper__line"></span>
+    <span>mova · aproxime-se de uma estrela · toque o núcleo</span>
+  </div>
+
+  <!-- Rótulos das estrelas-projeto -->
+  <div class="star-labels" id="star-labels" aria-hidden="true"></div>
+
+  <!-- Rótulos do arquivo -->
+  <div class="archive-labels" id="archive-labels" aria-hidden="true"></div>
+
+  <!-- Mundo-projeto -->
+  <div class="world" id="world" aria-hidden="true">
+    <button class="world__return" id="world-return" type="button" aria-label="Voltar à galáxia">
+      <span class="world__return-glyph"></span>
+    </button>
+
+    <header class="world__head">
+      <p class="world__index" id="world-index"></p>
+      <h2 class="world__name" id="world-name"></h2>
+      <p class="world__epithet" id="world-epithet"></p>
+    </header>
+
+    <div class="moon-labels" id="moon-labels"></div>
+
+    <article class="world__scripture" id="world-scripture" aria-live="polite"></article>
+
+    <div class="constellation-labels" id="constellation-labels"></div>
+
+    <div class="world__links" id="world-links">
+      <a class="world__link" id="world-github" href="#" target="_blank" rel="noopener">GitHub <span>↗</span></a>
+      <span class="world__link-sep"></span>
+      <a class="world__link" id="world-demo" href="#" target="_blank" rel="noopener">Demo <span>↗</span></a>
+    </div>
+  </div>
+
+  <!-- Véu de ignição -->
+  <div class="veil" id="veil">
+    <div class="veil__core"></div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="./js/projects.js"></script>
+  <script type="module" src="./js/scene.js"></script>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

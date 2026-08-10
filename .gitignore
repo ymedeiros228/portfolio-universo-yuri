@@ -1,0 +1,14 @@
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# Editor
+.vscode/
+.idea/
+
+# Deps
+node_modules/
+
+# Logs
+*.log

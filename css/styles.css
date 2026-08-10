@@ -1,0 +1,394 @@
+/* ============================================================
+   O UNIVERSO DE YURI
+   A galáxia é a interface. Sem cards. Sem painéis. Sem nav.
+   Tipografia flutuante integrada ao mundo.
+   ============================================================ */
+
+:root {
+  --void:    #020308;
+  --void-2:  #050810;
+  --star:    #f6f2ea;
+  --star-dim:rgba(246, 242, 234, 0.45);
+  --star-faint:rgba(246, 242, 234, 0.22);
+  --gold:    #d8c0a8;
+  --gold-soft:#b8a888;
+  --gold-glow:rgba(216, 192, 168, 0.3);
+  --line:    rgba(246, 242, 234, 0.08);
+  --serif:   "Cormorant Garamond", "Times New Roman", serif;
+  --sans:    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ease:    cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background: var(--void);
+  color: var(--star);
+  font-family: var(--sans);
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  cursor: default;
+}
+button, a { cursor: pointer; }
+::selection { background: var(--gold-glow); color: var(--void); }
+
+#scene-root { position: fixed; inset: 0; z-index: 0; pointer-events: auto; }
+#scene-root canvas { display: block; }
+
+/* ---------- Véu ---------- */
+.veil {
+  position: fixed; inset: 0; z-index: 100;
+  background: var(--void);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 4s var(--ease), visibility 4s var(--ease), transform 4s var(--ease);
+  transform: scale(1);
+}
+.veil.is-hidden { opacity: 0; visibility: hidden; transform: scale(1.15); }
+.veil__core {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: rgba(230,200,180,0.8);
+  box-shadow: 0 0 16px 4px rgba(210,180,160,0.2), 0 0 40px 8px rgba(190,160,140,0.08), 0 0 80px 16px rgba(180,150,130,0.03);
+  animation: pulse 4s var(--ease) infinite;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(2.2); opacity: 0.25; }
+}
+
+/* ---------- Nome central ---------- */
+.center-name {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(1.15);
+  z-index: 25; text-align: center;
+  pointer-events: auto;
+  background: transparent; border: none;
+  display: flex; flex-direction: column; align-items: center;
+  opacity: 0;
+  filter: blur(20px);
+  transition: opacity 3.5s var(--ease), transform 4s var(--ease), filter 3.5s var(--ease);
+  animation: centerReveal 5s var(--ease) 1s forwards;
+}
+@keyframes centerReveal {
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+}
+.center-name.is-fading {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.88);
+  filter: blur(16px);
+  pointer-events: none;
+}
+.center-name__title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(28px, 5vw, 76px);
+  letter-spacing: 0.36em;
+  text-indent: 0.36em;
+  color: rgba(246, 242, 234, 0.92);
+  line-height: 1;
+  text-shadow: 0 0 60px rgba(220,180,160,0.15), 0 2px 30px rgba(0,0,0,0.8);
+  animation: breathe 9s ease-in-out infinite;
+}
+.center-name__phrase {
+  margin-top: 28px;
+  font-size: clamp(8px, 0.9vw, 11px);
+  letter-spacing: 0.46em;
+  text-indent: 0.46em;
+  text-transform: uppercase;
+  color: rgba(246, 242, 234, 0.35);
+  font-weight: 300;
+  animation: fadeIn 4s var(--ease) 1.5s both;
+  max-width: 600px;
+}
+.center-name__hint {
+  margin-top: 22px;
+  font-size: 8px; letter-spacing: 0.5em; text-transform: uppercase;
+  color: rgba(210,180,160,0.4); font-weight: 400; opacity: 0;
+  transition: opacity 1.6s var(--ease);
+  animation: hintPulse 5s ease-in-out 4s infinite;
+}
+.center-name:hover .center-name__hint { opacity: 0.75; }
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.2; transform: translateY(0); }
+  50% { opacity: 0.45; transform: translateY(-2px); }
+}
+@keyframes breathe { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ---------- Assinatura ---------- */
+.signature {
+  position: fixed; bottom: 36px; left: 40px; z-index: 28;
+  display: flex; align-items: center; gap: 12px;
+  font-size: 9px; letter-spacing: 0.42em; text-transform: uppercase;
+  color: rgba(246,242,234,0.18); font-weight: 400;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity 3.5s var(--ease) 2s, transform 3.5s var(--ease) 2s;
+}
+.signature.is-visible { opacity: 1; transform: translateY(0); }
+.signature__dot {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: var(--gold); box-shadow: 0 0 6px rgba(216,192,168,0.25);
+}
+
+/* ---------- Sussurro ---------- */
+.whisper {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(8px);
+  z-index: 28; display: flex; align-items: center; gap: 14px;
+  font-size: 9px; letter-spacing: 0.44em; text-transform: uppercase;
+  color: rgba(246,242,234,0.16); font-weight: 400;
+  opacity: 0; transition: opacity 2.5s var(--ease), transform 2.5s var(--ease);
+}
+.whisper.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.whisper.is-gone { opacity: 0 !important; transform: translateY(6px); transition: opacity 4s var(--ease), transform 4s var(--ease); }
+.whisper__line { width: 20px; height: 1px; background: linear-gradient(to right, transparent, rgba(210,180,160,0.18), transparent); }
+
+/* ---------- Rodapé ---------- */
+.foot {
+  position: fixed; bottom: 36px; right: clamp(28px, 5vw, 72px);
+  z-index: 28; display: flex; align-items: center; gap: 22px;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity 3.5s var(--ease) 2.2s, transform 3.5s var(--ease) 2.2s;
+}
+.foot.is-visible { opacity: 1; transform: translateY(0); }
+.foot__link {
+  font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
+  color: rgba(246,242,234,0.22); font-weight: 400; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 7px;
+  transition: color 0.8s var(--ease);
+}
+.foot__link:hover { color: var(--gold); }
+.foot__link span { font-size: 10px; opacity: 0.5; }
+.foot__sep { width: 1px; height: 10px; background: rgba(246,242,234,0.06); }
+.foot__loc { font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(246,242,234,0.18); font-weight: 400; }
+
+/* ---------- Rótulos das estrelas ---------- */
+.star-labels { position: fixed; inset: 0; z-index: 22; pointer-events: none; }
+.star-labels .star-label { pointer-events: auto; }
+.star-label {
+  position: absolute; transform: translate(-50%, -50%) translateY(6px);
+  pointer-events: auto; cursor: pointer;
+  opacity: 0; transition: opacity 2s var(--ease), transform 2s var(--ease);
+  user-select: none; text-align: center;
+  background: transparent; border: none; padding: 0;
+  font: inherit; color: inherit;
+}
+.star-label.is-shown { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
+.star-label__name {
+  font-family: var(--serif); font-style: italic; font-weight: 400;
+  font-size: 17px; letter-spacing: 0.14em;
+  color: rgba(246, 242, 234, 0.8);
+  white-space: nowrap;
+  text-shadow: 0 2px 24px rgba(0,0,0,0.98), 0 0 50px rgba(0,0,0,0.6);
+  transition: color 1.2s var(--ease), letter-spacing 1.2s var(--ease), text-shadow 1.2s var(--ease);
+}
+.star-label:hover .star-label__name,
+.star-label.is-hovered .star-label__name {
+  color: var(--gold); letter-spacing: 0.2em; font-weight: 500;
+  text-shadow: 0 2px 24px rgba(0,0,0,0.98), 0 0 40px rgba(232,201,138,0.25);
+}
+
+/* ---------- Rótulos arquivo ---------- */
+.archive-labels { position: fixed; inset: 0; z-index: 18; pointer-events: none; }
+.archive-label {
+  position: absolute; transform: translate(-50%, -50%) translateY(4px);
+  pointer-events: auto; opacity: 0;
+  transition: opacity 2.5s var(--ease), transform 2.5s var(--ease);
+  text-align: center; cursor: pointer; text-decoration: none;
+}
+.archive-label.is-shown { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
+.archive-label__name {
+  font-size: 7px; letter-spacing: 0.42em; text-transform: uppercase;
+  color: rgba(246,242,234,0.1); font-weight: 400; white-space: nowrap;
+  transition: color 0.8s var(--ease);
+  text-shadow: 0 1px 12px rgba(0,0,0,0.95);
+}
+.archive-label:hover .archive-label__name { color: rgba(232,201,138,0.35); }
+
+/* ---------- Mundo ---------- */
+.world {
+  position: fixed; inset: 0; z-index: 40;
+  pointer-events: none; opacity: 0; visibility: hidden;
+  transition: opacity 2.2s var(--ease), visibility 2.2s var(--ease);
+}
+.world.is-visible { opacity: 1; visibility: visible; pointer-events: auto; }
+
+.world__return {
+  position: fixed; top: 40px; left: 40px;
+  background: transparent; border: none; cursor: pointer;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transform: translateX(-12px);
+  transition: opacity 2.2s var(--ease) 1.2s, transform 2.2s var(--ease) 1.2s;
+}
+.world.is-visible .world__return { opacity: 0.4; transform: translateX(0); }
+.world__return:hover { opacity: 0.85; transform: translateX(-2px); }
+.world__return-glyph {
+  width: 18px; height: 1px; background: rgba(246,242,234,0.55); position: relative;
+  transition: width 1s var(--ease), background 1s var(--ease);
+}
+.world__return-glyph::before {
+  content: ""; position: absolute; left: 0; top: -3.5px;
+  width: 7px; height: 7px;
+  border-left: 1px solid rgba(246,242,234,0.55); border-bottom: 1px solid rgba(246,242,234,0.55);
+  transform: rotate(45deg); transition: border-color 1s var(--ease);
+}
+.world__return:hover .world__return-glyph { width: 26px; background: var(--gold); }
+.world__return:hover .world__return-glyph::before { border-color: var(--gold); }
+
+/* Cabeçalho do projeto — canto superior esquerdo, entrada escalonada */
+.world__head {
+  position: fixed; top: clamp(80px, 12vh, 120px); left: clamp(28px, 5vw, 72px);
+  transform: translate(-12px, 0);
+  max-width: 320px;
+  opacity: 0;
+  transition: opacity 2.5s var(--ease) 1s, transform 2.5s var(--ease) 1s;
+}
+.world.is-visible .world__head { opacity: 1; transform: translate(0, 0); }
+.world__index {
+  font-size: 9px; letter-spacing: 0.5em; color: rgba(216,192,168,0.5);
+  font-weight: 400; margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(216,192,168,0.08);
+  width: 48px;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity 1.5s var(--ease) 1.2s, transform 1.5s var(--ease) 1.2s;
+}
+.world.is-visible .world__index { opacity: 1; transform: translateY(0); }
+.world__name {
+  font-family: var(--serif); font-weight: 400;
+  font-size: clamp(28px, 3.8vw, 52px); line-height: 1.05;
+  letter-spacing: 0.1em; color: rgba(246,242,234,0.92);
+  text-shadow: 0 0 40px rgba(220,180,160,0.08);
+  opacity: 0; transform: translateY(12px);
+  transition: opacity 1.8s var(--ease) 1.5s, transform 1.8s var(--ease) 1.5s;
+}
+.world.is-visible .world__name { opacity: 1; transform: translateY(0); }
+.world__epithet {
+  margin-top: 18px; font-size: 13px; line-height: 1.7;
+  color: rgba(246,242,234,0.4); font-weight: 300; max-width: 280px;
+  font-style: italic; font-family: var(--serif);
+  opacity: 0; transform: translateY(8px);
+  transition: opacity 1.5s var(--ease) 1.9s, transform 1.5s var(--ease) 1.9s;
+}
+.world.is-visible .world__epithet { opacity: 1; transform: translateY(0); }
+
+/* Luas */
+.moon-labels { position: fixed; inset: 0; z-index: 24; pointer-events: none; }
+.moon-label {
+  position: absolute; transform: translate(-50%, -50%) translateY(4px);
+  pointer-events: auto; cursor: pointer;
+  opacity: 0; transition: opacity 1.8s var(--ease), transform 1.8s var(--ease);
+  white-space: nowrap; background: transparent; border: none; padding: 0;
+  font: inherit; color: inherit;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+}
+.moon-label.is-shown { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
+.moon-label__text {
+  font-size: 8px; letter-spacing: 0.4em; text-transform: uppercase;
+  color: rgba(246, 242, 234, 0.28); font-weight: 300;
+  transition: color 1s var(--ease), letter-spacing 1s var(--ease);
+  text-shadow: 0 1px 12px rgba(0,0,0,0.98);
+}
+.moon-label:hover .moon-label__text, .moon-label.is-active .moon-label__text {
+  color: var(--gold); letter-spacing: 0.46em;
+}
+
+/* Escritura — centro-direita, entrada com slide suave */
+.world__scripture {
+  position: fixed; top: 50%; right: clamp(28px, 5vw, 72px);
+  transform: translate(16px, -50%);
+  width: 340px; max-width: 32vw;
+  opacity: 0;
+  transition: opacity 2s var(--ease), transform 2s var(--ease);
+  pointer-events: auto;
+}
+.world__scripture.is-shown { opacity: 1; transform: translate(0, -50%); }
+.world__scripture::before {
+  content: ""; display: block; width: 32px; height: 1px;
+  background: linear-gradient(to right, rgba(216,192,168,0.35), transparent);
+  margin-bottom: 24px;
+}
+.world__scripture h3 {
+  font-family: var(--serif); font-weight: 400; font-style: italic;
+  font-size: 24px; line-height: 1.3; color: rgba(216,192,168,0.78);
+  margin-bottom: 20px; letter-spacing: 0.01em;
+  text-shadow: 0 0 30px rgba(210,180,160,0.06);
+}
+.world__scripture p {
+  font-size: 14px; line-height: 1.85; color: rgba(246,242,234,0.72);
+  font-weight: 300; margin-bottom: 16px;
+}
+.world__scripture ul { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; }
+.world__scripture li {
+  font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase;
+  color: rgba(246,242,234,0.45); font-weight: 300;
+  padding: 0;
+}
+.world__scripture li::after { content: " ·"; color: rgba(216,192,168,0.25); margin-left: 12px; }
+.world__scripture li:last-child::after { content: ""; }
+.world__scripture .stat { display: flex; gap: 36px; margin-top: 8px; }
+.world__scripture .stat__num {
+  font-family: var(--serif); font-size: 38px; font-weight: 300;
+  color: rgba(216,192,168,0.72); line-height: 1;
+}
+.world__scripture .stat__label {
+  font-size: 8px; letter-spacing: 0.38em; text-transform: uppercase;
+  color: rgba(246,242,234,0.28); margin-top: 8px;
+}
+
+/* Constelação labels */
+.constellation-labels { position: fixed; inset: 0; z-index: 21; pointer-events: none; }
+.const-label {
+  position: absolute; transform: translate(-50%, -50%) translateY(3px);
+  font-size: 6px; letter-spacing: 0.42em; text-transform: uppercase;
+  color: rgba(246,242,234,0.12); font-weight: 400;
+  opacity: 0; transition: opacity 3.5s var(--ease) 2.5s, transform 3.5s var(--ease) 2.5s; white-space: nowrap;
+}
+.const-label.is-shown { opacity: 0.3; transform: translate(-50%, -50%) translateY(0); }
+
+/* Links — embaixo centro, entrada suave */
+.world__links {
+  position: fixed; bottom: clamp(28px, 5vh, 48px); left: 50%;
+  transform: translate(-50%, 12px);
+  z-index: 42; display: flex; align-items: center; gap: 24px;
+  opacity: 0;
+  transition: opacity 2.2s var(--ease) 2s, transform 2.2s var(--ease) 2s;
+}
+.world.is-visible .world__links { opacity: 1; transform: translate(-50%, 0); }
+.world__link {
+  font-size: 10px; letter-spacing: 0.4em; text-transform: uppercase;
+  color: rgba(246,242,234,0.35); font-weight: 400; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: color 0.8s var(--ease), letter-spacing 0.8s var(--ease);
+}
+.world__link:hover { color: var(--gold); letter-spacing: 0.44em; }
+.world__link span { font-size: 11px; opacity: 0.5; }
+.world__link-sep { width: 1px; height: 10px; background: rgba(246,242,234,0.08); }
+
+/* Contato — links verticais bem espaçados */
+.world__scripture .contact-links { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; }
+.world__scripture .contact-link {
+  display: inline-flex; align-items: center; gap: 12px;
+  font-size: 11px; letter-spacing: 0.36em; text-transform: uppercase;
+  color: rgba(246,242,234,0.5); font-weight: 400; text-decoration: none;
+  padding: 10px 0; border-bottom: 1px solid rgba(246,242,234,0.04);
+  transition: color 0.8s var(--ease), border-color 0.8s var(--ease), gap 0.8s var(--ease);
+}
+.world__scripture .contact-link:hover { color: var(--gold); border-color: rgba(216,192,168,0.18); gap: 18px; }
+.world__scripture .contact-link span { font-size: 12px; opacity: 0.4; }
+
+@media (max-width: 820px) {
+  .world__head { top: 80px; left: 22px; max-width: 85vw; }
+  .world.is-visible .world__head { transform: none; }
+  .world__name { font-size: 28px; }
+  .world__epithet { font-size: 11px; max-width: 85vw; }
+  .world__scripture { top: auto; bottom: 100px; right: 22px; left: 22px; width: auto; max-width: none; transform: none; }
+  .world__scripture.is-shown { transform: none; }
+  .world__scripture p { font-size: 13px; }
+  .world__links { gap: 16px; }
+  .world__link { font-size: 9px; letter-spacing: 0.32em; }
+  .signature, .foot { left: 22px; right: 22px; justify-content: center; gap: 12px; }
+  .foot__loc { display: none; }
+}
