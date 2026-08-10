@@ -10,6 +10,7 @@ import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { SMAAPass } from "three/addons/postprocessing/SMAAPass.js";
 import { PROJECTS, ABOUT, ARCHIVE } from "./projects.js";
 
 const TAU = Math.PI * 2;
@@ -80,19 +81,24 @@ export class Universe {
     this._buildProjectWorld();
     this._bindEvents();
     this._loop = this._loop.bind(this);
+    this._paused = false;
+    document.addEventListener("visibilitychange", () => {
+      this._paused = document.hidden;
+      if (!this._paused) this.clock.getDelta(); // reset delta ao voltar
+    });
     this._loop();
   }
 
   /* ============================ INFRA ============================ */
 
   _initRenderer() {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-    // Evita multiplicar o custo de partículas e bloom em telas HiDPI.
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance", stencil: false, depth: true });
+    // Render nativo em resolução total — sem clamp, qualidade 4K em telas HiDPI
+    this.renderer.setPixelRatio(window.devicePixelRatio || 1);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setClearColor(0x030617, 1);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.38;
+    this.renderer.toneMappingExposure = 0.48;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.root.appendChild(this.renderer.domElement);
   }
@@ -110,9 +116,15 @@ export class Universe {
   }
 
   _initPost() {
-    this.composer = new EffectComposer(this.renderer);
+    const rtSize = new THREE.Vector2(window.innerWidth, window.innerHeight);
+    const rtPixelRatio = window.devicePixelRatio || 1;
+    // Render target em alta resolução com HDR e mipmaps
+    this.composer = new EffectComposer(this.renderer, new THREE.WebGLRenderTarget(
+      Math.floor(rtSize.x * rtPixelRatio), Math.floor(rtSize.y * rtPixelRatio),
+      { type: THREE.HalfFloatType, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: true }
+    ));
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.08, 0.3, 0.85);
+    this.bloom = new UnrealBloomPass(rtSize, 0.06, 0.25, 0.95);
     this.composer.addPass(this.bloom);
     // Color grading: vignette + grain imperceptível + tilt quase neutro
     this.gradePass = new ShaderPass({
@@ -158,32 +170,44 @@ export class Universe {
         }`
     });
     this.composer.addPass(this.gradePass);
+    // SMAA: antialiasing de alta qualidade pós-processamento
+    this.smaaPass = new SMAAPass(window.innerWidth * (window.devicePixelRatio || 1), window.innerHeight * (window.devicePixelRatio || 1));
+    this.composer.addPass(this.smaaPass);
     this.composer.addPass(new OutputPass());
   }
 
   /* ============================ NEBULAE ============================ */
 
   _makeNebulaTexture(hue) {
-    const S = 512, c = document.createElement("canvas");
+    if (!this._texCache) this._texCache = new Map();
+    const key = `neb-${hue}`;
+    if (this._texCache.has(key)) return this._texCache.get(key);
+    const S = 1024, c = document.createElement("canvas");
     c.width = c.height = S;
     const ctx = c.getContext("2d");
     ctx.clearRect(0, 0, S, S);
     const g1 = ctx.createRadialGradient(S/2, S/2, 0, S/2, S/2, S/2);
-    g1.addColorStop(0, `hsla(${hue}, 46%, 45%, 0.3)`);
-    g1.addColorStop(0.3, `hsla(${hue}, 39%, 30%, 0.1)`);
-    g1.addColorStop(1, `hsla(${hue}, 30%, 16%, 0)`);
+    g1.addColorStop(0, `hsla(${hue}, 18%, 35%, 0.18)`);
+    g1.addColorStop(0.3, `hsla(${hue}, 15%, 22%, 0.06)`);
+    g1.addColorStop(1, `hsla(${hue}, 12%, 12%, 0)`);
     ctx.fillStyle = g1; ctx.fillRect(0, 0, S, S);
     for (let i = 0; i < 6; i++) {
       const bx = S/2 + (Math.random() - 0.5) * S * 0.6;
       const by = S/2 + (Math.random() - 0.5) * S * 0.6;
       const br = S * (0.12 + Math.random() * 0.25);
       const g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
-      const h = hue + (Math.random() - 0.5) * 30;
-      g.addColorStop(0, `hsla(${h}, 40%, 38%, ${0.07 + Math.random() * 0.07})`);
-      g.addColorStop(1, `hsla(${h}, 34%, 22%, 0)`);
+      const h = hue + (Math.random() - 0.5) * 20;
+      g.addColorStop(0, `hsla(${h}, 18%, 30%, ${0.04 + Math.random() * 0.04})`);
+      g.addColorStop(1, `hsla(${h}, 14%, 16%, 0)`);
       ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
     }
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.magFilter = THREE.LinearFilter;
+    t.generateMipmaps = true;
+    t.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+    this._texCache.set(key, t);
+    return t;
   }
 
   _buildNebulae() {
@@ -191,10 +215,10 @@ export class Universe {
     this.scene.add(this.nebulaGroup);
     // Nebulosas: azul espacial + violeta suave + rosa cósmico discreto
     const configs = [
-      { pos: [0, 1, -8], scale: 55, hue: 232, color: 0x111a3c, op: 0.05 },
-      { pos: [-22, -3, 12], scale: 45, hue: 258, color: 0x1b1740, op: 0.04 },
-      { pos: [20, 4, -15], scale: 50, hue: 218, color: 0x101b3d, op: 0.035 },
-      { pos: [8, -6, 18], scale: 38, hue: 278, color: 0x21183d, op: 0.025 },
+      { pos: [0, 1, -8], scale: 55, hue: 232, color: 0x0a0e1a, op: 0.04 },
+      { pos: [-22, -3, 12], scale: 45, hue: 258, color: 0x0c0a16, op: 0.035 },
+      { pos: [20, 4, -15], scale: 50, hue: 218, color: 0x08101a, op: 0.03 },
+      { pos: [8, -6, 18], scale: 38, hue: 278, color: 0x0e0a18, op: 0.022 },
     ];
     this.nebulae = configs.map(cfg => {
       const tex = this._makeNebulaTexture(cfg.hue);
@@ -211,7 +235,7 @@ export class Universe {
   /* ============================ STARFIELD ============================ */
 
   _buildStarfield() {
-    const N = 1400;
+    const N = 3000;
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(N * 3), siz = new Float32Array(N), col = new Float32Array(N * 3);
     const pal = [new THREE.Color(0xffffff), new THREE.Color(0xfff4e0), new THREE.Color(0xdfe7ff), new THREE.Color(0xffe9c8), new THREE.Color(0xcfd8f0)];
@@ -234,16 +258,20 @@ export class Universe {
         uniform float uTime; uniform float uPx;
         void main(){ vC = aColor; vec4 mv = modelViewMatrix * vec4(position,1.0);
         float seed = position.x*0.13+position.y*0.27+position.z*0.11;
-        // Twinkle muito sutil — estrelas reais quase não piscam
-        float tw1 = sin(uTime * 0.4 + seed);
-        float tw2 = sin(uTime * 0.7 + seed * 2.1);
-        float tw3 = sin(uTime * 0.15 + seed * 0.5);
-        vT = 0.5 + 0.5 * (tw1 * 0.5 + tw2 * 0.3 + tw3 * 0.2);
-        gl_PointSize = aSize * uPx * (280.0 / -mv.z) * (0.7 + vT * 0.3);
+        // Twinkle quase imperceptível — estrelas cinematográficas não piscam
+        float tw1 = sin(uTime * 0.15 + seed);
+        vT = 0.5 + 0.5 * tw1 * 0.15;
+        gl_PointSize = aSize * uPx * (280.0 / -mv.z) * (0.92 + vT * 0.08);
         gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `varying vec3 vC; varying float vT;
         void main(){ vec2 uv = gl_PointCoord - 0.5; float d = length(uv);
-        float a = smoothstep(0.5, 0.0, d); a *= a; gl_FragColor = vec4(vC, a * vT * 0.72); }`,
+        // Núcleo gaussiano + halo suave + spike de difração sutil
+        float core = exp(-d * d * 20.0);
+        float halo = exp(-d * d * 4.0) * 0.25;
+        float spike = max(0.0, 1.0 - abs(uv.x) * 8.0) * max(0.0, 1.0 - abs(uv.y) * 1.5) * 0.08;
+        spike += max(0.0, 1.0 - abs(uv.y) * 8.0) * max(0.0, 1.0 - abs(uv.x) * 1.5) * 0.08;
+        float a = (core + halo + spike) * vT * 0.8;
+        gl_FragColor = vec4(vC, a); }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 1.0
     });
     this.starfield = new THREE.Points(geo, mat);
@@ -263,8 +291,8 @@ export class Universe {
       pos[i*3+1] = (Math.random() - 0.5) * 2.2 * (1 - r/34);
       pos[i*3+2] = Math.sin(t) * r;
       const inner = 1 - r/34;
-      // Poeira orbital: azulada no interior, violeta escuro fora
-      const c = new THREE.Color().setHSL(0.65 + (1-inner)*0.07, 0.38, 0.04 + inner*0.065);
+      // Poeira orbital: azulada dessaturada no interior, violeta escuro fora
+      const c = new THREE.Color().setHSL(0.65 + (1-inner)*0.07, 0.18, 0.04 + inner*0.065);
       col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
       siz[i] = Math.random() * 1.6 + 0.3;
     }
@@ -293,7 +321,7 @@ export class Universe {
   _buildGalaxy() {
     // ===== MASSA CÓSMICA ORGÂNICA sobre braços espirais =====
     // Braços logarítmicos como base + densidade por campo de ruído 3D (FBM)
-    const N = 24000;
+    const N = 40000;
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(N * 3), col = new Float32Array(N * 3), siz = new Float32Array(N);
     const R = 24.0;
@@ -321,11 +349,11 @@ export class Universe {
     // Gradiente suave — transições lentas no centro, sem anéis visíveis
     const gradientStops = [
       { t: 0.00, c: cWhiteCore },
-      { t: 0.08, c: cGoldSoft },
-      { t: 0.20, c: cHaloBlue },
-      { t: 0.32, c: cBlueViolet },
-      { t: 0.45, c: cViolet },
-      { t: 0.60, c: cPurple },
+      { t: 0.15, c: cGoldSoft },
+      { t: 0.28, c: cHaloBlue },
+      { t: 0.38, c: cBlueViolet },
+      { t: 0.50, c: cViolet },
+      { t: 0.62, c: cPurple },
       { t: 0.75, c: cDeepBlue },
       { t: 0.90, c: cFarBlue },
       { t: 1.00, c: cVoid },
@@ -364,10 +392,10 @@ export class Universe {
         // Espiral logarítmica: theta cresce com ln(raio)
         const spiralTheta = arm.offset + Math.log(Math.max(radius, 1.2) / 1.2) / arm.pitch;
         // Dispersão em torno do braço — cresce com o raio (braços difusos, não riscos)
-        const spread = 0.20 + t * 0.40;
+        const spread = 0.30 + t * 0.55;
         const scatter = (Math.random() + Math.random() + Math.random() - 1.5) * spread;
-        // Perturbação FBM: quebra a simetria procedural do braço
-        const warp = fbm2(Math.cos(spiralTheta) * radius * 0.09, Math.sin(spiralTheta) * radius * 0.09) * 0.45;
+        // Perturbação FBM forte: dissolve a estrutura espiral em massas orgânicas
+        const warp = fbm2(Math.cos(spiralTheta) * radius * 0.09, Math.sin(spiralTheta) * radius * 0.09) * 0.85;
         const angle = spiralTheta + scatter * arm.width + warp;
 
         // Campo de densidade 3D — mantém regiões densas e vazios orgânicos
@@ -430,13 +458,15 @@ export class Universe {
         gl_PointSize = aSize * uPx * (340.0 / -mv.z); gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `varying vec3 vC; varying float vDepth;
         void main(){ vec2 uv = gl_PointCoord - 0.5; float d = length(uv);
-        // Gás cósmico: decay exponencial muito suave
-        float core = exp(-d * 4.0);
-        float halo = exp(-d * 1.8) * 0.25;
+        // Soft particle: gaussiana suave de alta qualidade
+        float core = exp(-d * d * 12.0);
+        float halo = exp(-d * d * 3.0) * 0.3;
         float a = core + halo;
         // Depth fog: partículas mais distantes são mais difusas
         float depthFade = smoothstep(60.0, 15.0, vDepth);
-        gl_FragColor = vec4(vC, a * 0.27 * depthFade); }`,
+        // Opacidade varia com distância do centro — núcleo mais denso
+        float radialFade = smoothstep(45.0, 10.0, vDepth);
+        gl_FragColor = vec4(vC, a * (0.20 + radialFade * 0.15) * depthFade); }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 1.0
     });
     this.galaxy = new THREE.Points(geo, mat);
@@ -448,19 +478,19 @@ export class Universe {
     const gctx = glowCanvas.getContext("2d");
     const makeGlowTexture = (stops, detail = false) => {
       const c = document.createElement("canvas");
-      c.width = c.height = 512;
+      c.width = c.height = 1024;
       const ctx = c.getContext("2d");
-      const g = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+      const g = ctx.createRadialGradient(512, 512, 0, 512, 512, 512);
       stops.forEach(s => g.addColorStop(s[0], s[1]));
       ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
       if (detail) {
         ctx.globalCompositeOperation = "screen";
         ctx.filter = "blur(14px)";
         const wisps = [
-          [238, 222, 92, 38, -0.35, "rgba(255, 240, 210, 0.08)"],
-          [302, 250, 76, 30, 0.45, "rgba(185, 165, 210, 0.065)"],
-          [250, 306, 62, 28, -0.7, "rgba(255, 226, 180, 0.06)"],
-          [320, 306, 48, 24, 0.25, "rgba(150, 165, 220, 0.05)"]
+          [476, 444, 184, 76, -0.35, "rgba(255, 240, 210, 0.08)"],
+          [604, 500, 152, 60, 0.45, "rgba(185, 165, 210, 0.065)"],
+          [500, 612, 124, 56, -0.7, "rgba(255, 226, 180, 0.06)"],
+          [640, 612, 96, 48, 0.25, "rgba(150, 165, 220, 0.05)"]
         ];
         wisps.forEach(([x, y, rx, ry, rotation, color]) => {
           ctx.save();
@@ -476,17 +506,17 @@ export class Universe {
           ctx.fill();
           ctx.restore();
         });
-        ctx.filter = "blur(8px)";
+        ctx.filter = "blur(16px)";
         for (let i = 0; i < 9; i++) {
           const a = i * 2.399;
-          const r = 34 + (i % 3) * 19;
-          const x = 256 + Math.cos(a) * r;
-          const y = 256 + Math.sin(a) * r;
-          const blob = ctx.createRadialGradient(x, y, 0, x, y, 22 + (i % 2) * 9);
+          const r = 68 + (i % 3) * 38;
+          const x = 512 + Math.cos(a) * r;
+          const y = 512 + Math.sin(a) * r;
+          const blob = ctx.createRadialGradient(x, y, 0, x, y, 44 + (i % 2) * 18);
           blob.addColorStop(0, i % 2 ? "rgba(255, 244, 220, 0.05)" : "rgba(180, 165, 220, 0.045)");
           blob.addColorStop(1, "rgba(0, 0, 0, 0)");
           ctx.fillStyle = blob;
-          ctx.fillRect(x - 35, y - 35, 70, 70);
+          ctx.fillRect(x - 70, y - 70, 140, 140);
         }
         ctx.filter = "none";
         ctx.globalCompositeOperation = "source-over";
@@ -522,6 +552,15 @@ export class Universe {
       { tex: tex2, scale: 18, op: 0.12 },
       { tex: tex3, scale: 32, op: 0.07 },
     ];
+    // Sprite 4: núcleo central pequeno e brilhante — ponto focal sem estourar
+    const texCore = makeGlowTexture([
+      [0.0, "rgba(255, 250, 240, 0.22)"],
+      [0.08, "rgba(248, 232, 200, 0.16)"],
+      [0.25, "rgba(220, 195, 170, 0.06)"],
+      [0.6, "rgba(150, 140, 160, 0.015)"],
+      [1.0, "rgba(0, 0, 0, 0)"]
+    ]);
+    glowConfigs.push({ tex: texCore, scale: 5, op: 0.30 });
     glowConfigs.forEach(cfg => {
       const m = new THREE.SpriteMaterial({ map: cfg.tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: cfg.op });
       const sp = new THREE.Sprite(m);
@@ -612,7 +651,7 @@ export class Universe {
         gl_PointSize = aSize * uPx * (300.0 / -mv.z); gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `varying vec3 vC;
         void main(){ vec2 uv = gl_PointCoord - 0.5; float d = length(uv);
-        float a = exp(-d * 2.5) * 0.022;
+        float a = exp(-d * 2.5) * 0.08;
         gl_FragColor = vec4(vC, a); }`,
       transparent: true, depthWrite: false, blending: THREE.NormalBlending, opacity: 1.0
     });
@@ -651,7 +690,7 @@ export class Universe {
       const c = new THREE.Color();
       const lightFalloff = Math.exp(-t * 2.0);
       const hue = t < 0.25 ? 0.64 : (t < 0.55 ? 0.69 : 0.66);
-      c.setHSL(hue, 0.22, 0.055 + (1 - t) * 0.025);
+      c.setHSL(hue, 0.12, 0.055 + (1 - t) * 0.025);
       c.multiplyScalar(lightFalloff);
       col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
       siz[i] = Math.random() * 5.0 + 2.0; // grande e difuso
@@ -726,7 +765,9 @@ export class Universe {
   /* ============================ CORE ============================ */
 
   _makeGlowTexture() {
-    const S = 256, c = document.createElement("canvas");
+    if (!this._texCache) this._texCache = new Map();
+    if (this._texCache.has("glow-default")) return this._texCache.get("glow-default");
+    const S = 512, c = document.createElement("canvas");
     c.width = c.height = S;
     const ctx = c.getContext("2d");
     const g = ctx.createRadialGradient(S/2, S/2, 0, S/2, S/2, S/2);
@@ -735,7 +776,13 @@ export class Universe {
     g.addColorStop(0.30, "rgba(232,201,138,0.2)");
     g.addColorStop(1, "rgba(232,201,138,0)");
     ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.magFilter = THREE.LinearFilter;
+    t.generateMipmaps = true;
+    t.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+    this._texCache.set("glow-default", t);
+    return t;
   }
 
   _buildCore() {
@@ -768,14 +815,14 @@ export class Universe {
         corona.scale.set(4.5, 4.5, 1);
         g.add(corona);
         // Sol maior e brilhante
-        sun = new THREE.Mesh(new THREE.SphereGeometry(0.25, 24, 24), new THREE.MeshBasicMaterial({ color: p.color }));
+        sun = new THREE.Mesh(new THREE.SphereGeometry(0.25, 48, 48), new THREE.MeshBasicMaterial({ color: p.color }));
         g.add(sun);
         // Luz própria para iluminar o que estiver perto
         light = new THREE.PointLight(p.color, 0.2, 6, 2);
         g.add(light);
         // 2 planetas pequenos orbitando
         for (let k = 0; k < 2; k++) {
-          const m = new THREE.Mesh(new THREE.SphereGeometry(0.06 + k * 0.015, 16, 16), new THREE.MeshStandardMaterial({ color: 0x606060, emissive: 0x040408, roughness: 0.85 }));
+          const m = new THREE.Mesh(new THREE.SphereGeometry(0.06 + k * 0.015, 32, 32), new THREE.MeshStandardMaterial({ color: 0x606060, emissive: 0x040408, roughness: 0.85 }));
           g.add(m);
           orbs.push({ mesh: m, r: 0.7 + k * 0.3, speed: 0.2 + k * 0.06, phase: k * 1.3 });
         }
@@ -793,7 +840,7 @@ export class Universe {
     this.archiveStars = [];
     ARCHIVE.forEach(a => {
       const v = new THREE.Vector3(Math.cos(a.angle) * a.radius, (Math.random() - 0.5) * 1.5, Math.sin(a.angle) * a.radius);
-      const star = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 12), new THREE.MeshBasicMaterial({ color: 0x4a5878 }));
+      const star = new THREE.Mesh(new THREE.SphereGeometry(0.03, 24, 24), new THREE.MeshBasicMaterial({ color: 0x2a3040 }));
       star.position.copy(v);
       this.archiveGroup.add(star);
       this.archiveStars.push({ data: a, pos: v });
@@ -857,7 +904,7 @@ export class Universe {
           gl_FragColor = vec4(base, 1.0);
         }`
     });
-    this.heroPlanet = new THREE.Mesh(new THREE.SphereGeometry(3.0, 128, 128), this.planetMat);
+    this.heroPlanet = new THREE.Mesh(new THREE.SphereGeometry(3.0, 256, 256), this.planetMat);
     this.projectWorld.add(this.heroPlanet);
     const haloMat = new THREE.ShaderMaterial({
       uniforms: { uColor: { value: new THREE.Color(0xd8b898) } },
@@ -865,8 +912,13 @@ export class Universe {
       fragmentShader: `varying vec3 vN; varying vec3 vView; uniform vec3 uColor; void main(){ float f = pow(1.0 - max(dot(normalize(vN), normalize(vView)), 0.0), 4.0); gl_FragColor = vec4(uColor, f * 0.12); }`,
       transparent: true, side: THREE.BackSide, depthWrite: false, blending: THREE.AdditiveBlending
     });
-    this.heroHalo = new THREE.Mesh(new THREE.SphereGeometry(3.3, 64, 64), haloMat);
+    this.heroHalo = new THREE.Mesh(new THREE.SphereGeometry(3.3, 128, 128), haloMat);
     this.projectWorld.add(this.heroHalo);
+    // Glow atmosférico externo — sprite grande e difuso
+    const atmoGlowTex = this._makeGlowTexture();
+    this.heroAtmoGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: atmoGlowTex, color: 0xd8b898, transparent: true, opacity: 0.08, depthWrite: false, blending: THREE.AdditiveBlending }));
+    this.heroAtmoGlow.scale.set(10, 10, 1);
+    this.projectWorld.add(this.heroAtmoGlow);
     this.moonGroup = new THREE.Group();
     this.projectWorld.add(this.moonGroup);
     this.moons = [];
@@ -881,15 +933,17 @@ export class Universe {
     this.planetMat.uniforms.uColor.value = new THREE.Color(project.color);
     this.planetMat.uniforms.uAccent.value = new THREE.Color(project.accent);
     this.heroHalo.material.uniforms.uColor.value = new THREE.Color(project.accent);
+    this.heroAtmoGlow.material.color = new THREE.Color(project.accent);
     const pSize = project.planet.size;
     const planetScale = window.innerWidth > 820 ? pSize / 3.4 : pSize / 4.6;
     this.heroPlanet.scale.setScalar(planetScale);
     this.heroHalo.scale.setScalar(planetScale);
+    this.heroAtmoGlow.scale.setScalar(planetScale * 3.3);
     const moonCount = project.moons.length;
     project.moons.forEach((m, i) => {
       const radius = 4.6 + i * 0.65;
       const moonSize = window.innerWidth > 820 ? 0.13 + (i % 3) * 0.02 : 0.09 + (i % 3) * 0.015;
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(moonSize, 24, 24), new THREE.MeshStandardMaterial({ color: 0x6a6862, emissive: 0x040406, roughness: 0.9, metalness: 0.03 }));
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(moonSize, 48, 48), new THREE.MeshStandardMaterial({ color: 0x6a6862, emissive: 0x040406, roughness: 0.9, metalness: 0.03 }));
       this.moonGroup.add(mesh);
       this.moons.push({ mesh, data: m, radius, speed: 0.1 + i * 0.03, phase: (i / moonCount) * TAU, tilt: (i % 2 === 0 ? 1 : -1) * 0.1, worldPos: new THREE.Vector3() });
     });
@@ -899,7 +953,7 @@ export class Universe {
       const r = 9.5 + Math.random() * 5;
       const v = new THREE.Vector3(Math.cos(angle) * r, (Math.random() - 0.5) * 5, Math.sin(angle) * r - 7);
       stars.push(v);
-      const sm = new THREE.Mesh(new THREE.SphereGeometry(0.025, 12, 12), new THREE.MeshBasicMaterial({ color: 0x4a5878 }));
+      const sm = new THREE.Mesh(new THREE.SphereGeometry(0.04, 24, 24), new THREE.MeshBasicMaterial({ color: 0x4a5878 }));
       sm.position.copy(v);
       this.constellation.add(sm);
     });
@@ -993,14 +1047,17 @@ export class Universe {
   }
 
   setCenterHovered(hovered) { this._centerHovered = hovered; }
+  setMoonHover(idx) { this._moonHover = idx; }
 
   _onResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.setPixelRatio(window.devicePixelRatio || 1);
     this.composer.setSize(window.innerWidth, window.innerHeight);
     this.gradePass.uniforms.uRes.value.set(window.innerWidth, window.innerHeight);
+    const dpr = window.devicePixelRatio || 1;
+    if (this.smaaPass) this.smaaPass.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
   }
 
   /* ============================ API ============================ */
@@ -1012,6 +1069,7 @@ export class Universe {
   }
   getPointerScreen() { return this._pointerScreen; }
   getHoveredId() { return this._hoveredSys ? this._hoveredSys.project.id : null; }
+  getZoom() { return this._radius; }
   onMoonLabels(fn) { this._moonLabelsFn = fn; }
   onConstellationLabels(fn) { this._constLabelsFn = fn; }
   onArchiveLabels(fn) { this._archiveLabelsFn = fn; }
@@ -1041,6 +1099,7 @@ export class Universe {
   /* ============================ LOOP ============================ */
 
   _loop() {
+    if (this._paused) { requestAnimationFrame(this._loop); return; }
     requestAnimationFrame(this._loop);
     const elapsed = this.clock.getElapsedTime();
     const t = this.reducedMotion ? 0 : elapsed;
@@ -1087,23 +1146,18 @@ export class Universe {
       const breath = 1 + (Math.sin(t * 0.05 + n.userData.phase) * 0.5 + Math.sin(t * 0.12 + n.userData.phase * 1.7) * 0.3) * 0.025;
       n.scale.set(n.userData.baseScale * breath, n.userData.baseScale * breath, 1);
       n.material.opacity = n.userData.baseOp * (0.85 + (Math.sin(t * 0.07 + n.userData.phase) * 0.5 + Math.sin(t * 0.15 + n.userData.phase * 2) * 0.3) * 0.12);
-      // Deriva lenta e orgânica — cada nebulosa na sua própria órbita
-      const driftAngle = i * 1.7 + t * 0.003;
-      n.position.x += Math.cos(driftAngle) * dt * 0.0015;
-      n.position.z += Math.sin(driftAngle) * dt * 0.001;
-      // Limitar drift — voltar ao centro suavemente
-      const distFromBase = Math.hypot(n.position.x - n.userData.baseX, n.position.z - n.userData.baseZ);
-      if (distFromBase > 2.5) {
-        n.position.x = damp(n.position.x, n.userData.baseX, 0.03, dt);
-        n.position.z = damp(n.position.z, n.userData.baseZ, 0.03, dt);
-      }
+      // Oscilação senoidal em torno da posição base — simples e performático
+      n.position.x = n.userData.baseX + Math.sin(t * 0.03 + n.userData.phase) * 1.2;
+      n.position.z = n.userData.baseZ + Math.cos(t * 0.025 + n.userData.phase * 1.3) * 0.8;
     });
     this.nebulaGroup.rotation.y += dt * 0.0008;
 
-    // Hover raycast — throttle para não fazer todo frame (performance)
+    // Hover raycast — throttle + early-out se mouse parado
     this._raycastTimer = (this._raycastTimer || 0) + dt;
-    if (this._raycastTimer > 0.05) { // 20fps para raycast
+    const mouseMoved = this.pointerTarget.distanceTo(this._lastPointer || this.pointerTarget) > 0.001;
+    if (this._raycastTimer > 0.05 && (mouseMoved || !this._lastPointer)) {
       this._raycastTimer = 0;
+      this._lastPointer = this.pointerTarget.clone();
       if (this.mode === "galaxy" || this.mode === "idle") this._hoverRaycast();
     }
 
@@ -1150,9 +1204,10 @@ export class Universe {
       }
     });
 
-    // Núcleo: pulsação muito suave — energia sutil
+    // Núcleo: pulsação muito suave — energia sutil + boost no hover
     const corePulse = (Math.sin(t * 0.08) * 0.5 + Math.sin(t * 0.19 + 1.3) * 0.3 + Math.sin(t * 0.04 + 2.7) * 0.15) * 0.02;
-    this.coreLight.intensity = 0.12 + corePulse;
+    const hoverBoost = this._centerHovered ? 0.08 : 0;
+    this.coreLight.intensity = damp(this.coreLight.intensity, 0.12 + corePulse + hoverBoost, 3, dt);
     // Cor neutra — branco acinzentado suave
     const coreColorPhase = (Math.sin(t * 0.06) + 1) * 0.5;
     this.coreLight.color.setRGB(
@@ -1164,7 +1219,7 @@ export class Universe {
     if (this.projectWorld.visible) {
       // Planeta gira lento e constante
       this.heroPlanet.rotation.y += dt * 0.018;
-      this.moons.forEach(m => {
+      this.moons.forEach((m, i) => {
         const a = t * m.speed + m.phase;
         // Órbita elíptica natural com inclinação
         const ecc = 0.12;
@@ -1175,6 +1230,16 @@ export class Universe {
         );
         m.mesh.rotation.y += dt * 0.08;
         m.worldPos.copy(m.mesh.position).add(this.projectWorld.position);
+        // Highlight ao hover
+        const isHovered = this._moonHover === i;
+        const targetScale = isHovered ? 1.5 : 1.0;
+        const curScale = m.mesh.scale.x;
+        const newScale = damp(curScale, targetScale, 4, dt);
+        m.mesh.scale.setScalar(newScale);
+        if (m.mesh.material && m.mesh.material.emissive) {
+          const targetEmissive = isHovered ? 0x1a1a2a : 0x040406;
+          m.mesh.material.emissive.lerp(new THREE.Color(targetEmissive), 0.1);
+        }
       });
       this.constellation.rotation.y += dt * 0.003;
     }
@@ -1241,8 +1306,10 @@ export class Universe {
       this._introT = Math.min(1, this._introT + dt / this._introDur);
     }
     const introEase = easeOrganic(this._introT);
+    // FOV desacelera no final — não há salto abrupto
+    const fovEase = introEase * introEase * (3 - 2 * introEase);
     const introRadius = lerp(60, this._radius, introEase);
-    const introFov = lerp(75, this._fov, introEase);
+    const introFov = lerp(75, this._fov, fovEase);
     this.camera.fov = introFov;
     this.camera.updateProjectionMatrix();
 
@@ -1278,17 +1345,18 @@ export class Universe {
     // FOV transiciona suavemente para o do projeto
     this.camera.fov = THREE.MathUtils.lerp(this._fromFov, 36, ease);
     this.camera.updateProjectionMatrix();
-    // Galáxia fade out
+    // Galáxia fade out com curva suave (não linear)
     const fade = 1 - ease;
-    this.galaxy.material.opacity = fade;
-    this.galaxyDust.material.opacity = fade;
-    this.darkDust.material.opacity = fade;
-    this.foregroundDust.material.opacity = fade;
-    this.coreGlows.forEach(sp => sp.material.opacity = sp.userData.baseOp * fade);
-    this.nebulaSprites.children.forEach(sp => sp.material.opacity = sp.userData.baseOp * fade);
-    this.dust.material.opacity = fade;
+    const fadeSoft = fade * fade * (3 - 2 * fade); // smoothstep
+    this.galaxy.material.opacity = fadeSoft;
+    this.galaxyDust.material.opacity = fadeSoft;
+    this.darkDust.material.opacity = fadeSoft;
+    this.foregroundDust.material.opacity = fadeSoft;
+    this.coreGlows.forEach(sp => sp.material.opacity = sp.userData.baseOp * fadeSoft);
+    this.nebulaSprites.children.forEach(sp => sp.material.opacity = sp.userData.baseOp * fadeSoft);
+    this.dust.material.opacity = fadeSoft;
     this.starfield.material.opacity = fade;
-    this.nebulae.forEach(n => n.material.opacity = n.userData.baseOp * fade);
+    this.nebulae.forEach(n => n.material.opacity = n.userData.baseOp * fadeSoft);
     this.systemsGroup.children.forEach(c => { c.traverse(o => { if (o.material && o.material.opacity !== undefined) { o.userData.baseOp ??= o.material.opacity; o.material.opacity = o.userData.baseOp * fade; } }); });
     // Planeta fade in — começa invisível e aparece gradualmente
     const planetFade = ease;
@@ -1355,17 +1423,18 @@ export class Universe {
     this.archiveGroup.visible = true;
     this.starfield.visible = true;
     this.nebulaGroup.visible = true;
-    // Fade in da galáxia — começa lento, acelera
+    // Fade in da galáxia — smoothstep para entrada suave
     const fade = ease;
-    this.galaxy.material.opacity = fade;
-    this.galaxyDust.material.opacity = fade;
-    this.darkDust.material.opacity = fade;
-    this.foregroundDust.material.opacity = fade;
-    this.coreGlows.forEach(sp => sp.material.opacity = sp.userData.baseOp * fade);
-    this.nebulaSprites.children.forEach(sp => sp.material.opacity = sp.userData.baseOp * fade);
-    this.dust.material.opacity = fade;
+    const fadeSoft = fade * fade * (3 - 2 * fade);
+    this.galaxy.material.opacity = fadeSoft;
+    this.galaxyDust.material.opacity = fadeSoft;
+    this.darkDust.material.opacity = fadeSoft;
+    this.foregroundDust.material.opacity = fadeSoft;
+    this.coreGlows.forEach(sp => sp.material.opacity = sp.userData.baseOp * fadeSoft);
+    this.nebulaSprites.children.forEach(sp => sp.material.opacity = sp.userData.baseOp * fadeSoft);
+    this.dust.material.opacity = fadeSoft;
     this.starfield.material.opacity = fade;
-    this.nebulae.forEach(n => n.material.opacity = n.userData.baseOp * fade);
+    this.nebulae.forEach(n => n.material.opacity = n.userData.baseOp * fadeSoft);
     this.systemsGroup.children.forEach(c => { c.traverse(o => { if (o.material && o.userData.baseOp !== undefined) o.material.opacity = o.userData.baseOp * fade; }); });
     // Fade out do projectWorld (planeta) — some gradualmente
     const planetFade = 1 - ease;
@@ -1395,5 +1464,19 @@ export class Universe {
   projectToScreen(v) {
     const p = this._projectVector.copy(v).project(this.camera);
     return { x: (p.x * 0.5 + 0.5) * window.innerWidth, y: (-p.y * 0.5 + 0.5) * window.innerHeight, behind: p.z > 1 };
+  }
+
+  destroy() {
+    this._paused = true;
+    this.scene.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) {
+        if (Array.isArray(o.material)) o.material.forEach(m => { m.map?.dispose(); m.dispose(); });
+        else { o.material.map?.dispose(); o.material.dispose(); }
+      }
+    });
+    this.composer?.dispose?.();
+    this.renderer.dispose();
+    if (this.renderer.domElement?.parentNode) this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
   }
 }

@@ -24,6 +24,7 @@ const scripture  = $("#world-scripture");
 const constLabels= $("#constellation-labels");
 const worldGithub= $("#world-github");
 const worldDemo  = $("#world-demo");
+const travelVeil = $("#travel-veil");
 
 function setAccessibilityState(inWorld) {
   starLabels.setAttribute("aria-hidden", String(inWorld));
@@ -40,6 +41,16 @@ try {
 } catch (err) {
   console.error("[Universo] init failed:", err);
   if (veil) veil.classList.add("is-hidden");
+  // Fallback: mostrar mensagem com links
+  const fb = document.createElement("div");
+  fb.style.cssText = "position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#020308;color:rgba(246,242,234,0.7);font-family:serif;text-align:center;padding:40px;z-index:200;";
+  fb.innerHTML = `<h1 style="font-size:28px;font-weight:300;letter-spacing:0.1em;margin-bottom:20px;">Yuri Medeiros</h1>
+    <p style="font-size:14px;line-height:1.8;max-width:420px;margin-bottom:30px;opacity:0.6;">Esta experiência exige WebGL. Seu navegador não suporta aceleração 3D ou está em modo seguro.</p>
+    <div style="display:flex;gap:24px;">
+      <a href="https://github.com/ymedeiros228" target="_blank" rel="noopener" style="color:#d8c0a8;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;text-decoration:none;">GitHub ↗</a>
+      <a href="https://www.linkedin.com/in/yuri-medeiros-1071533b4/" target="_blank" rel="noopener" style="color:#d8c0a8;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;text-decoration:none;">LinkedIn ↗</a>
+    </div>`;
+  document.body.appendChild(fb);
 }
 
 const openingStartedAt = performance.now();
@@ -96,6 +107,33 @@ let activeProject = null;
 let activeMoonIdx = -1;
 let hasDeparted = false;
 
+// Drone cósmico opcional — só inicia após interação do usuário
+let audioCtx = null, droneNodes = null;
+function startAmbientDrone() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    osc1.type = "sine"; osc1.frequency.value = 55;
+    osc2.type = "sine"; osc2.frequency.value = 82.5;
+    filter.type = "lowpass"; filter.frequency.value = 200;
+    gain.gain.value = 0;
+    osc1.connect(filter); osc2.connect(filter);
+    filter.connect(gain); gain.connect(audioCtx.destination);
+    osc1.start(); osc2.start();
+    // Fade in lento
+    gain.gain.linearRampToValueAtTime(0.025, audioCtx.currentTime + 4);
+    droneNodes = { osc1, osc2, gain, filter };
+  } catch (e) { /* silencioso */ }
+}
+function setDroneIntensity(val) {
+  if (!droneNodes) return;
+  droneNodes.gain.gain.linearRampToValueAtTime(0.025 * val, audioCtx.currentTime + 1.5);
+}
+
 function containLabel(el, x, y, padding = 14) {
   el.style.left = `${x}px`;
   el.style.top = `${y}px`;
@@ -129,6 +167,7 @@ PROJECTS.forEach((p) => {
   el.dataset.id = p.id;
   el.innerHTML = `<span class="star-label__name">${p.name}</span>`;
   el.addEventListener("click", () => {
+    if (navigator.vibrate) navigator.vibrate(15);
     if (!hasDeparted) {
       hasDeparted = true;
       centerName.classList.add("is-fading");
@@ -152,7 +191,7 @@ scene.onLabels((systems) => {
     if (s.behind) { hideStarLabel(el); return; }
     // Fade por distância: aparece quando a câmera está perto o suficiente
     const dist = sys.worldPos.distanceTo(scene.camPos);
-    const op = Math.max(0, Math.min(1, (40 - dist) / 18));
+    const op = Math.max(0, Math.min(1, (25 - dist) / 12));
     if (op < 0.05) { hideStarLabel(el); return; }
     containLabel(el, s.x, s.y);
     el.style.opacity = op;
@@ -205,6 +244,8 @@ scene.onMoonLabels((moons) => {
       el.type = "button";
       el.innerHTML = `<span class="moon-label__text">${m.data.label}</span>`;
       el.addEventListener("click", () => selectMoon(i));
+      el.addEventListener("mouseenter", () => { if (scene.setMoonHover) scene.setMoonHover(i); });
+      el.addEventListener("mouseleave", () => { if (scene.setMoonHover) scene.setMoonHover(-1); });
       moonLabels.appendChild(el);
       return el;
     });
@@ -287,10 +328,28 @@ function depart() {
   centerName.classList.add("is-fading");
   whisper.classList.add("is-gone");
   scene.depart();
+  startAmbientDrone();
 }
 ["pointerdown", "wheel"].forEach(ev =>
   window.addEventListener(ev, depart, { once: true, passive: true })
 );
+
+// Indicador de zoom
+const zoomIndicator = document.getElementById("zoom-indicator");
+const zoomFill = document.getElementById("zoom-fill");
+let zoomHideTimer = null;
+window.addEventListener("wheel", () => {
+  if (scene.getZoom) {
+    const z = scene.getZoom();
+    const pct = Math.max(0, Math.min(100, ((50 - z) / (50 - 14)) * 100));
+    if (zoomFill) zoomFill.style.width = pct + "%";
+    if (zoomIndicator) zoomIndicator.classList.add("is-active");
+    clearTimeout(zoomHideTimer);
+    zoomHideTimer = setTimeout(() => {
+      if (zoomIndicator) zoomIndicator.classList.remove("is-active");
+    }, 1200);
+  }
+}, { passive: true });
 const departOnKey = (e) => {
   if (e.key !== "Enter" && e.key !== " ") return;
   depart();
@@ -299,6 +358,7 @@ const departOnKey = (e) => {
 window.addEventListener("keydown", departOnKey);
 
 centerName.addEventListener("click", (e) => {
+  if (navigator.vibrate) navigator.vibrate(20);
   if (!hasDeparted) {
     hasDeparted = true;
     centerName.classList.add("is-fading");
@@ -313,6 +373,8 @@ centerName.addEventListener("click", (e) => {
 scene.onEnter((project) => {
   activeProject = project;
   activeMoonIdx = -1;
+  setDroneIntensity(0.5);
+  if (travelVeil) { travelVeil.classList.add("is-active"); setTimeout(() => travelVeil.classList.remove("is-active"), 2000); }
   if (project.isAbout) {
     worldIndex.textContent = "YURI";
     worldName.textContent = PROFILE.name;
@@ -340,6 +402,8 @@ scene.onExit(() => {
   // Não esconder tudo de uma vez — fade gradual sincronizado com a câmera
   scripture.classList.remove("is-shown");
   activeMoonIdx = -1;
+  setDroneIntensity(1.0);
+  if (travelVeil) { travelVeil.classList.add("is-active"); setTimeout(() => travelVeil.classList.remove("is-active"), 2000); }
   signature.classList.remove("is-world-hidden");
   foot.classList.remove("is-world-hidden");
   // O world (overlay) começa a sumir imediatamente mas com CSS transition de 2.5s
@@ -353,6 +417,9 @@ scene.onExit(() => {
 });
 
 worldReturn.addEventListener("click", () => scene.exitProject());
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && scene && scene.exitProject) scene.exitProject();
+});
 
 /* ----------------- Moon selection ----------------- */
 function selectMoon(i) {
@@ -382,7 +449,4 @@ function renderScripture(m, project) {
   }
   return "";
 }
-
-window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && world.classList.contains("is-visible")) scene.exitProject();
-});
+// ESC handler unificado já registrado acima — sem duplicação

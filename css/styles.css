@@ -51,19 +51,34 @@ a:focus-visible {
   position: fixed; inset: 0; z-index: 100;
   background: var(--void);
   display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
   transition: opacity 4s var(--ease), visibility 4s var(--ease), transform 4s var(--ease);
   transform: scale(1);
 }
 .veil.is-hidden { opacity: 0; visibility: hidden; transform: scale(1.15); }
 .veil__core {
-  width: 4px; height: 4px; border-radius: 50%;
-  background: rgba(230,200,180,0.8);
-  box-shadow: 0 0 16px 4px rgba(210,180,160,0.2), 0 0 40px 8px rgba(190,160,140,0.08), 0 0 80px 16px rgba(180,150,130,0.03);
-  animation: pulse 4s var(--ease) infinite;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(235,210,190,0.9);
+  box-shadow: 0 0 20px 6px rgba(210,180,160,0.25), 0 0 50px 12px rgba(180,160,140,0.1), 0 0 100px 24px rgba(160,140,120,0.04);
+  animation: pulse 5s var(--ease) infinite;
+}
+.veil__text {
+  margin-top: 32px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13px;
+  font-weight: 300;
+  letter-spacing: 0.35em;
+  color: rgba(200,190,180,0.35);
+  text-transform: uppercase;
+  animation: fade 5s var(--ease) infinite;
 }
 @keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 0.9; }
-  50% { transform: scale(2.2); opacity: 0.25; }
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(2.5); opacity: 0.2; }
+}
+@keyframes fade {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.5; }
 }
 
 /* ---------- Nome central ---------- */
@@ -123,10 +138,10 @@ a:focus-visible {
   transition: opacity 1.6s var(--ease);
   animation: none;
 }
-.opening-ready .center-name__hint { animation: hintPulse 5s ease-in-out 3.8s infinite; }
-.center-name:hover .center-name__hint { opacity: 0.75; }
+.opening-ready .center-name__hint { animation: hintPulse 6s ease-in-out 5s infinite; }
+.center-name:hover .center-name__hint { opacity: 0.8; }
 @keyframes hintPulse {
-  0%, 100% { opacity: 0.2; transform: translateY(0); }
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
   50% { opacity: 0.45; transform: translateY(-2px); }
 }
 @keyframes breathe { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
@@ -163,6 +178,37 @@ a:focus-visible {
 .whisper.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 .whisper.is-gone { opacity: 0 !important; transform: translateY(6px); transition: opacity 4s var(--ease), transform 4s var(--ease); }
 .whisper__line { width: 20px; height: 1px; background: linear-gradient(to right, transparent, rgba(210,180,160,0.18), transparent); }
+
+/* ---------- Véu de viagem ---------- */
+.travel-veil {
+  position: fixed; inset: 0; z-index: 35; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(2,3,8,0.4) 80%, rgba(2,3,8,0.7) 100%);
+  opacity: 0;
+  transition: opacity 1.5s var(--ease);
+}
+.travel-veil.is-active { opacity: 1; }
+
+/* ---------- Indicador de zoom ---------- */
+.zoom-indicator {
+  position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
+  z-index: 27; width: 120px; height: 2px;
+  opacity: 0; transition: opacity 0.6s var(--ease);
+  pointer-events: none;
+}
+.zoom-indicator.is-active { opacity: 0.3; }
+.zoom-indicator__bar {
+  width: 100%; height: 100%;
+  background: rgba(200,190,180,0.08);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.zoom-indicator__fill {
+  height: 100%;
+  background: linear-gradient(to right, rgba(210,180,160,0.4), rgba(180,160,140,0.2));
+  border-radius: 1px;
+  transition: width 0.3s var(--ease);
+  width: 50%;
+}
 
 /* ---------- Rodapé ---------- */
 .foot {

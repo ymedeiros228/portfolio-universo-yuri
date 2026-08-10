@@ -4,8 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#020308" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <title>Yuri Medeiros — O Universo de Yuri</title>
   <meta name="description" content="Yuri Medeiros — desenvolvedor full-stack. Uma experiência digital: o visitante não entra em um site, explora um universo." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://ymedeiros228.github.io/portfolio-universo-yuri/" />
+  <meta name="author" content="Yuri Medeiros" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Yuri Medeiros — O Universo de Yuri" />
+  <meta property="og:description" content="Desenvolvedor full-stack especializado em saúde pública, GIS e IA. Explore uma galáxia de projetos reais." />
+  <meta property="og:url" content="https://ymedeiros228.github.io/portfolio-universo-yuri/" />
+  <meta property="og:site_name" content="O Universo de Yuri" />
+  <meta property="og:image" content="https://ymedeiros228.github.io/portfolio-universo-yuri/og-image.svg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Yuri Medeiros — O Universo de Yuri" />
+  <meta name="twitter:description" content="Desenvolvedor full-stack especializado em saúde pública, GIS e IA. Explore uma galáxia de projetos reais." />
+  <meta name="twitter:image" content="https://ymedeiros228.github.io/portfolio-universo-yuri/og-image.svg" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -44,6 +64,14 @@
     <span>mova · aproxime-se de uma estrela · toque o núcleo</span>
   </div>
 
+  <!-- Véu de viagem (transição entre galáxia e projeto) -->
+  <div class="travel-veil" id="travel-veil" aria-hidden="true"></div>
+
+  <!-- Indicador de distância -->
+  <div class="zoom-indicator" id="zoom-indicator" aria-hidden="true">
+    <div class="zoom-indicator__bar"><div class="zoom-indicator__fill" id="zoom-fill"></div></div>
+  </div>
+
   <!-- Rótulos das estrelas-projeto -->
   <div class="star-labels" id="star-labels" aria-hidden="true"></div>
 
@@ -78,6 +106,7 @@
   <!-- Véu de ignição -->
   <div class="veil" id="veil">
     <div class="veil__core"></div>
+    <div class="veil__text">acendendo as estrelas</div>
   </div>
 
   <script type="importmap">
@@ -91,5 +120,16 @@
   <script type="module" src="./js/projects.js"></script>
   <script type="module" src="./js/scene.js"></script>
   <script type="module" src="./js/main.js"></script>
+
+  <noscript>
+    <div style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#020308;color:rgba(246,242,234,0.7);font-family:serif;text-align:center;padding:40px;z-index:200;">
+      <h1 style="font-size:28px;font-weight:300;letter-spacing:0.1em;margin-bottom:20px;">Yuri Medeiros</h1>
+      <p style="font-size:14px;line-height:1.8;max-width:420px;margin-bottom:30px;opacity:0.6;">Esta experiência requer JavaScript. Você pode conhecer meu trabalho diretamente nos links abaixo.</p>
+      <div style="display:flex;gap:24px;">
+        <a href="https://github.com/ymedeiros228" target="_blank" rel="noopener" style="color:#d8c0a8;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;text-decoration:none;">GitHub ↗</a>
+        <a href="https://www.linkedin.com/in/yuri-medeiros-1071533b4/" target="_blank" rel="noopener" style="color:#d8c0a8;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;text-decoration:none;">LinkedIn ↗</a>
+      </div>
+    </div>
+  </noscript>
 </body>
 </html>
