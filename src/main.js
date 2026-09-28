@@ -98,9 +98,11 @@ function placeLabels(u) {
       const moon = sys.moons[l.p];
       // lua atrás do planeta (ou fora da tela): o rótulo se apaga suavemente
       const c = u.project(sys.center, _c);
-      const cr = (sys.radius * k) / c.dist;
+      // raio visível = atmosfera (1.12× o planeta), com projeção em perspectiva
+      const R = sys.radius * 1.12;
+      const cr = (R * k) / Math.sqrt(Math.max(1e-4, c.dist * c.dist - R * R));
       u.project(moon.world, _p);
-      const behind = _p.dist > c.dist ? Math.max(0, Math.min(1, (cr * 1.1 - Math.hypot(_p.x - c.x, _p.y - c.y)) / (cr * 0.25))) : 0;
+      const behind = _p.dist > c.dist ? Math.max(0, Math.min(1, (cr * 1.3 - Math.hypot(_p.x - c.x, _p.y - c.y)) / (cr * 0.25))) : 0;
       const off = _p.z >= 1 || _p.x < 0 || _p.x > innerWidth - 16 || _p.y < 0 || _p.y > innerHeight;
       target = off ? 0 : w * w * (1 - behind);
       if (!off) {
@@ -257,7 +259,7 @@ function intro() {
   const hub = document.getElementById("inicio");
   const splits = hub.querySelectorAll(".split");
   const reveals = hub.querySelectorAll(".reveal");
-  if (reduced) { gsap.set([splits, reveals], SHOW); lenis?.start(); setupReveals(); return; }
+  if (reduced) { gsap.set([...splits, ...reveals], SHOW); lenis?.start(); setupReveals(); return; }
   // voo de abertura só quando a página começa no topo (recarga no meio: direto ao ponto)
   const cinematic = universe && (universe.progress || 0) < 0.05;
   if (cinematic) {
@@ -280,7 +282,7 @@ function setupReveals() {
   sections.slice(1).forEach((sec) => {
     const splits = sec.querySelectorAll(".split");
     const reveals = sec.querySelectorAll(".reveal");
-    if (reduced) { gsap.set([splits, reveals], SHOW); return; }
+    if (reduced) { gsap.set([...splits, ...reveals], SHOW); return; }
     const tl = gsap.timeline({ scrollTrigger: { trigger: sec, start: "top 62%", end: "bottom 38%", toggleActions: "play reverse play reverse" } });
     if (splits.length) tl.to(splits, { ...SHOW, duration: 1.4, ease: "expo.out" });
     if (reveals.length) tl.to(reveals, { ...SHOW, duration: 1.1, ease: "expo.out", stagger: 0.06 }, splits.length ? "-=1.15" : 0);

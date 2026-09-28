@@ -1,6 +1,11 @@
 /* ============================================================
    O Universo de Yuri — interface de nave sobre uma galáxia 3D
    ============================================================ */
+/* fontes servidas pelo próprio site (sem ida ao Google Fonts) */
+@import "@fontsource-variable/sora/wght.css";
+@import "@fontsource-variable/inter/wght.css";
+@import "@fontsource-variable/jetbrains-mono/wght.css";
+
 :root {
   --bg: #04050c;
   --ink: #eef0fb;
@@ -13,9 +18,9 @@
   --gold: #ffc58a;
   --glass: linear-gradient(160deg, rgba(22, 22, 46, 0.62), rgba(8, 9, 22, 0.52));
   --side: 92px;
-  --sans: "Inter", system-ui, sans-serif;
-  --display: "Sora", "Inter", system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, monospace;
+  --sans: "Inter Variable", system-ui, sans-serif;
+  --display: "Sora Variable", "Inter Variable", system-ui, sans-serif;
+  --mono: "JetBrains Mono Variable", ui-monospace, monospace;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --shade: 0;
   color-scheme: dark;
@@ -212,7 +217,7 @@ main { position: relative; z-index: 5; margin-left: var(--side); }
   text-transform: uppercase; white-space: nowrap; text-shadow: 0 2px 30px rgba(0, 0, 0, 0.6);
 }
 .hub__role {
-  margin-top: 16px; font: 500 12px var(--mono); letter-spacing: 0.3em; text-transform: uppercase; color: var(--ink);
+  margin-top: 16px; font: 500 12px var(--mono); letter-spacing: 0.3em; text-transform: uppercase; color: var(--ink); white-space: nowrap;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 18px rgba(0, 0, 0, 0.9);
 }
 .hub__role i { font-style: normal; color: var(--violet-2); margin: 0 6px; }
@@ -383,7 +388,7 @@ main { position: relative; z-index: 5; margin-left: var(--side); }
   .stop--system { align-items: flex-end; min-height: 150vh; padding-bottom: 90px; }
   .panel { padding: 26px 22px; border-radius: 18px; }
   .hub__name { letter-spacing: 0.34em; margin-right: -0.34em; font-size: 22px; }
-  .hub__role { font-size: 12px; letter-spacing: 0.08em; line-height: 1.8; text-wrap: balance; padding: 0 12px; }
+  .hub__role { font-size: 12px; letter-spacing: 0.08em; line-height: 1.8; white-space: normal; text-wrap: balance; padding: 0 12px; }
   .hub__role i { margin: 0 3px; }
   .hub__intro { left: 18px; right: 18px; bottom: 150px; max-width: none; text-align: center; font-size: 12.5px; }
   .hub__cue { left: 0; right: 0; margin: 0 auto; width: max-content; bottom: 84px; } /* centrado sem transform (o GSAP anima o transform) */
