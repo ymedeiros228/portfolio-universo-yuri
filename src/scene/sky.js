@@ -22,7 +22,8 @@ const DOME_FRAG = /* glsl */ `
     float n = fbm(q);
     float m = smoothstep(0.42, 0.85, n);
     // faixa da Via Láctea: um grande círculo inclinado
-    float band = exp(-pow(dot(d, normalize(vec3(0.25, 1.0, 0.35))), 2.0) * 9.0);
+    float bd = dot(d, normalize(vec3(0.25, 1.0, 0.35)));
+    float band = exp(-bd * bd * 9.0); // bd*bd em vez de pow(bd, 2.0): pow com base negativa dá NaN no Direct3D
     vec3 deep = vec3(0.006, 0.008, 0.024);
     vec3 violet = vec3(0.09, 0.04, 0.16);
     vec3 blue = vec3(0.03, 0.07, 0.17);

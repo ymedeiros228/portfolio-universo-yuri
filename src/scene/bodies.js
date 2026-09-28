@@ -33,7 +33,7 @@ export const SUN_FRAG = /* glsl */ `
     float cells = fbm3(p * 22.0 - uTime * 0.08);
     float spots = smoothstep(0.66, 0.74, fbm3(p * 3.0 + 4.0));
     float mu = max(dot(vN, vView), 0.0);
-    float limb = pow(mu, 0.45); // escurecimento de borda
+    float limb = pow(max(mu, 1e-4), 0.45); // escurecimento de borda
     vec3 hot = mix(vec3(1.0, 0.95, 0.85), uTint, 0.25), mid = uTint, cool = uTint * vec3(0.55, 0.35, 0.3);
     vec3 c = mix(mid, hot, g * 0.9 + cells * 0.35);
     c = mix(c, cool, spots * 0.7);

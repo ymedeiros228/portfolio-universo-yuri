@@ -164,15 +164,17 @@ export function bakeDiskGlow(renderer, size = 2048) {
       float arm = max(armA, spur * 0.55);
       float clumps = smoothstep(0.32, 0.9, fbm(p * 0.55 + 3.0));
       float disk = exp(-r / 7.8);
-      // bojo: centro creme compacto + halo laranja largo; levemente oval (barra)
-      vec2 pb = vec2(p.x * 0.8 + p.y * 0.35, p.y * 1.15 - p.x * 0.2);
-      float rb = length(pb);
-      float bulgeHot = exp(-rb * rb / 1.6) * 1.8;
-      float bulgeWarm = exp(-rb / 2.6) * 0.9;
+      // bojo dourado com barra central: halo largo + barra alongada + núcleo compacto
+      float ca = cos(0.5), sa = sin(0.5);
+      vec2 pb = vec2(ca * p.x - sa * p.y, sa * p.x + ca * p.y); // eixo da barra
+      float rb = length(pb * vec2(0.85, 1.15));
+      float bar = exp(-(pb.x * pb.x) / 5.8 - (pb.y * pb.y) / 0.55);
+      float bulgeHot = exp(-rb * rb / 1.3) * 0.62 + bar * 0.5 + exp(-rb * rb / 0.05) * 1.1;
+      float bulgeWarm = exp(-rb / 2.5) * 0.7;
       vec3 col = ramp(r);
       float armLight = arm * (0.35 + 1.25 * clumps) * disk * smoothstep(1.2, 4.5, r);
       vec3 c = col * (disk * 0.28 + armLight * 1.9);
-      c += vec3(1.0, 0.86, 0.66) * bulgeHot + vec3(1.0, 0.5, 0.2) * bulgeWarm;
+      c += vec3(1.0, 0.8, 0.54) * bulgeHot + vec3(1.0, 0.46, 0.18) * bulgeWarm;
       // nós HII: pontos rosados brilhantes nas cristas
       vec3 v1 = voronoi(p * 1.35);
       float k1 = exp(-v1.x * v1.x * 42.0) * step(0.84, hash2(v1.yz).x);
@@ -208,6 +210,15 @@ export function bakeDiskDust(renderer, size = 2048) {
       // poeira fina e manchada entre os braços
       d += smoothstep(0.74, 1.08, ridged(p * 0.7 + 2.0)) * 0.5 * exp(-r / 10.0);
       d *= smoothstep(1.4, 4.5, r) * smoothstep(R * 0.95, R * 0.4, r);
+      // faixas de poeira da barra: duas curvas escuras na borda de ataque da barra,
+      // atravessando o bojo (como nas galáxias barradas reais)
+      float ca = cos(0.5), sa = sin(0.5);
+      vec2 pb = vec2(ca * p.x - sa * p.y, sa * p.x + ca * p.y);
+      float along = smoothstep(3.4, 0.9, abs(pb.x));
+      float l1 = pb.y - 0.62 - pb.x * 0.22 + pb.x * pb.x * 0.05;
+      float l2 = pb.y + 0.62 - pb.x * 0.22 - pb.x * pb.x * 0.05;
+      float wisp = 0.55 + 0.45 * fbm(p * 2.2 + 5.0);
+      d += (exp(-l1 * l1 / 0.035) + exp(-l2 * l2 / 0.035)) * along * wisp * 0.75 * smoothstep(0.25, 0.9, r);
       gl_FragColor = vec4(vec3(0.035, 0.014, 0.012), clamp(d * 1.15, 0.0, 0.94));
     }
   `);

@@ -38,6 +38,8 @@ function finishLoading() {
 import("./scene/Universe.js")
   .then(({ Universe }) => {
     universe = new Universe(document.getElementById("universe"), { onFirstFrame: finishLoading, onFrame: placeLabels });
+    universe.useExternalLoop((fn) => gsap.ticker.add(fn));
+    onScroll();
   })
   .catch((err) => {
     // sem WebGL: o conteúdo HTML continua completo, só sem o espaço 3D
@@ -66,33 +68,52 @@ function placeLabels(u) {
       const rp = ((s.ring ? s.radius * 2.1 : s.radius) * k) / _p.dist;
       m.style.setProperty("--off", `${Math.max(14, rp + 10).toFixed(1)}px`);
       // perto da borda direita, o texto passa para o lado esquerdo da estrela
-      m.classList.toggle("is-left", _p.x > innerWidth - (innerWidth < 820 ? 130 : 230));
+      const lim = innerWidth - (innerWidth < 820 ? 130 : 230);
+      if (_p.x > lim + 30) m.classList.add("is-left");
+      else if (_p.x < lim - 30) m.classList.remove("is-left");
     });
   }
   // rótulos das luas do planeta visitado
+  // Tudo aqui é suavizado (visibilidade, lado e posição): nada liga/desliga
+  // de um quadro para o outro — é isso que evitava o "pisca" dos rótulos.
+  const now = performance.now();
+  const dt = Math.min(0.1, (now - (placeLabels.last || now)) / 1000);
+  placeLabels.last = now;
+  const ease = 1 - Math.exp(-dt * 10);
   const edge = innerWidth - (innerWidth < 820 ? 110 : 240);
   const vis = [];
   plabels.forEach((l) => {
-    const w = Math.max(0, Math.min(1, 1 - Math.abs(p - (l.s + 1)) * 3));
-    if (w <= 0) {
-      if (l.shown) { l.el.style.opacity = "0"; l.shown = false; }
+    let w = Math.max(0, Math.min(1, 1 - Math.abs(p - (l.s + 1)) * 3));
+    if (u.travel && u.travel.index !== l.s + 1) w = 0; // em voo: só o destino ganha rótulos
+    let target = 0;
+    if (w > 0) {
+      const sys = u.systems.systems[l.s];
+      const moon = sys.moons[l.p];
+      // lua atrás do planeta (ou fora da tela): o rótulo se apaga suavemente
+      const c = u.project(sys.center, _c);
+      const cr = (sys.radius * k) / c.dist;
+      u.project(moon.world, _p);
+      const behind = _p.dist > c.dist ? Math.max(0, Math.min(1, (cr * 1.1 - Math.hypot(_p.x - c.x, _p.y - c.y)) / (cr * 0.25))) : 0;
+      const off = _p.z >= 1 || _p.x < 0 || _p.x > innerWidth - 16 || _p.y < 0 || _p.y > innerHeight;
+      target = off ? 0 : w * w * (1 - behind);
+      if (!off) {
+        const r = (moon.size * k) / _p.dist;
+        // lado com histerese: só troca depois de passar 40px da borda
+        if (l.left === undefined) l.left = _p.x > edge;
+        else if (l.left && _p.x < edge - 40) l.left = false;
+        else if (!l.left && _p.x > edge + 40) l.left = true;
+        l.w ??= l.el.offsetWidth; // medidas feitas uma vez só
+        l.h ??= l.el.offsetHeight;
+        vis.push({ l, x: l.left ? _p.x - r - 8 - l.w : _p.x + r + 8, y: _p.y - 10 });
+      }
+    }
+    l.a = (l.a || 0) + (target - (l.a || 0)) * ease;
+    if (l.a < 0.004 && target === 0) {
+      if (l.shown) { l.el.style.opacity = "0"; l.shown = false; l.x = undefined; }
       return;
     }
-    const sys = u.systems.systems[l.s];
-    const planet = sys.moons[l.p];
-    // lua escondida atrás do planeta (ou fora da tela): sem rótulo
-    const c = u.project(sys.center, _c);
-    const cr = (sys.radius * k) / c.dist;
-    u.project(planet.world, _p);
-    if ((_p.dist > c.dist && Math.hypot(_p.x - c.x, _p.y - c.y) < cr) || _p.x < 0 || _p.x > innerWidth - 16 || _p.y < 0 || _p.y > innerHeight) {
-      if (l.shown) { l.el.style.opacity = "0"; l.shown = false; }
-      return;
-    }
-    const r = (planet.size * k) / _p.dist;
-    const left = _p.x > edge;
-    l.w ??= l.el.offsetWidth; // medidas feitas uma vez só
-    l.h ??= l.el.offsetHeight;
-    vis.push({ l, w, left, x: left ? _p.x - r - 8 - l.w : _p.x + r + 8, y: _p.y - 10 });
+    l.el.style.opacity = l.a.toFixed(3);
+    l.shown = true;
   });
   // evita rótulos encavalados: empurra para baixo quem colide
   vis.sort((a, b) => a.y - b.y);
@@ -102,16 +123,19 @@ function placeLabels(u) {
       if (Math.abs(A.x - B.x) < Math.max(A.l.w, B.l.w) && B.y - A.y < A.l.h + 6) B.y = A.y + A.l.h + 6;
     }
   }
-  vis.forEach(({ l, w, left, x, y }) => {
-    l.el.classList.toggle("is-left", left);
-    l.el.style.opacity = (w * w).toFixed(3);
-    l.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
-    l.shown = true;
+  vis.forEach(({ l, x, y }) => {
+    l.el.classList.toggle("is-left", l.left);
+    // posição amortecida: empurrões e trocas de lado deslizam em vez de saltar
+    if (l.x === undefined) { l.x = x; l.y = y; }
+    const pe = 1 - Math.exp(-dt * 18);
+    l.x += (x - l.x) * pe;
+    l.y += (y - l.y) * pe;
+    l.el.style.transform = `translate3d(${l.x.toFixed(1)}px, ${l.y.toFixed(1)}px, 0)`;
   });
 }
 
 /* ---------------- scroll suave ---------------- */
-const lenis = reduced ? null : new Lenis({ duration: 1.35, easing: (t) => 1 - Math.pow(1 - t, 4), wheelMultiplier: 0.9 });
+const lenis = reduced ? null : new Lenis({ lerp: 0.075, wheelMultiplier: 0.8, touchMultiplier: 1.2, syncTouch: true, syncTouchLerp: 0.08 });
 if (lenis) {
   lenis.on("scroll", ScrollTrigger.update);
   gsap.ticker.add((time) => lenis.raf(time * 1000));
@@ -122,8 +146,19 @@ if (lenis) {
 function goTo(i) {
   const el = sections[i];
   if (!el) return;
-  const y = i === 0 ? 0 : el.offsetTop + el.offsetHeight / 2 - innerHeight / 2;
-  lenis ? lenis.scrollTo(Math.max(0, y), { duration: 2.4 }) : scrollTo({ top: y, behavior: "auto" });
+  const y = Math.max(0, i === 0 ? 0 : el.offsetTop + el.offsetHeight / 2 - innerHeight / 2);
+  // duração proporcional à distância, mas sempre calma
+  const from = universe ? universe.smooth : 0;
+  const dur = Math.min(2.8, 1.5 + Math.abs(i - from) * 0.16);
+  if (universe && !reduced) {
+    universe.flyTo(i, dur);
+    // voos viram "cena": faixas entram e saem com a viagem
+    gsap.timeline({ overwrite: true })
+      .to(root, { "--cine": 0.55, duration: dur * 0.3, ease: "power2.out" })
+      .to(root, { "--cine": 0, duration: dur * 0.45, ease: "power2.inOut" }, dur * 0.55);
+  }
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  lenis ? lenis.scrollTo(y, { duration: dur, easing: ease, force: true }) : scrollTo({ top: y, behavior: "auto" });
 }
 document.addEventListener("click", (e) => {
   const a = e.target.closest("[data-goto]");
@@ -182,6 +217,33 @@ const tick = () => { clock.textContent = fmt.format(new Date()); };
 tick();
 setInterval(tick, 1000);
 
+/* ---------------- toque orgânico no ponteiro ---------------- */
+// Botões magnéticos: puxados de leve em direção ao cursor, voltam com mola.
+// Painéis: luz no vidro e na borda que acompanha o cursor.
+if (!reduced && matchMedia("(pointer: fine)").matches) {
+  document.querySelectorAll(".btn, .top__cta, .socials a").forEach((el) => {
+    const x = gsap.quickTo(el, "x", { duration: 0.6, ease: "power3.out" });
+    const y = gsap.quickTo(el, "y", { duration: 0.6, ease: "power3.out" });
+    el.addEventListener("pointermove", (e) => {
+      const r = el.getBoundingClientRect();
+      x((e.clientX - (r.left + r.width / 2)) * 0.28);
+      y((e.clientY - (r.top + r.height / 2)) * 0.36);
+    });
+    el.addEventListener("pointerleave", () => {
+      gsap.to(el, { x: 0, y: 0, duration: 1.1, ease: "elastic.out(1, 0.45)", overwrite: true });
+    });
+  });
+  document.querySelectorAll(".panel").forEach((el) => {
+    el.addEventListener("pointermove", (e) => {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      el.style.setProperty("--my", `${e.clientY - r.top}px`);
+      el.style.setProperty("--glow", "1");
+    });
+    el.addEventListener("pointerleave", () => el.style.setProperty("--glow", "0"));
+  });
+}
+
 /* ---------------- revelações ---------------- */
 const SHOW = { opacity: 1, y: 0, filter: "blur(0px)" };
 function intro() {
@@ -189,11 +251,21 @@ function intro() {
   const splits = hub.querySelectorAll(".split");
   const reveals = hub.querySelectorAll(".reveal");
   if (reduced) { gsap.set([splits, reveals], SHOW); lenis?.start(); setupReveals(); return; }
+  // voo de abertura só quando a página começa no topo (recarga no meio: direto ao ponto)
+  const cinematic = universe && (universe.progress || 0) < 0.05;
+  if (cinematic) {
+    universe.startIntro(4.6);
+    // faixas de cinema presentes desde o primeiro quadro, recolhem quando a câmera pousa
+    gsap.fromTo(root, { "--cine": 1 }, { "--cine": 0, duration: 1.6, ease: "power3.inOut", delay: 3.6 });
+    // o nome chega com as letras abertas e se fecha, como um título de filme
+    if (innerWidth > 820) gsap.from(".hub__name", { letterSpacing: "1.4em", duration: 3.2, ease: "expo.out", delay: 1.6, clearProps: "letterSpacing" });
+  }
+  const d = cinematic ? 1 : 0; // o texto espera a câmera sair da luz
   gsap.timeline({ delay: 0.4, onComplete: () => lenis?.start() })
-    .fromTo(".markers", { opacity: 0 }, { opacity: 1, duration: 2.4, ease: "power2.out", clearProps: "opacity" }, 0.6)
-    .to(splits, { ...SHOW, duration: 2, ease: "expo.out" }, 0)
-    .to(reveals, { ...SHOW, duration: 1.6, ease: "expo.out", stagger: 0.12 }, 0.3)
-    .from(".side, .top", { opacity: 0, duration: 1.6, ease: "power2.out" }, 0.2);
+    .fromTo(".markers", { opacity: 0 }, { opacity: 1, duration: 2.4, ease: "power2.out", clearProps: "opacity" }, 0.6 + d * 2.6)
+    .to(splits, { ...SHOW, duration: 2.2, ease: "expo.out" }, d * 1.4)
+    .to(reveals, { ...SHOW, duration: 1.6, ease: "expo.out", stagger: 0.12 }, 0.3 + d * 1.8)
+    .from(".side, .top, .hud", { opacity: 0, duration: 1.6, ease: "power2.out" }, 0.2 + d * 2.4);
   setupReveals();
 }
 
@@ -261,6 +333,7 @@ github().catch((err) => {
 
 // atalhos de depuração (só no servidor de desenvolvimento)
 if (import.meta.env.DEV) {
+  window.__u = () => universe;
   window.__jump = (i) => {
     const el = sections[i];
     const y = i === 0 ? 0 : Math.max(0, el.offsetTop + el.offsetHeight / 2 - innerHeight / 2);
