@@ -74,8 +74,17 @@ function placeLabels(u) {
       // afastamento do texto = raio do planeta na tela
       const rp = ((s.ring ? s.radius * 2.1 : s.radius) * k) / _p.dist;
       m.style.setProperty("--off", `${Math.max(14, rp + 10).toFixed(1)}px`);
+      if (innerWidth < 820) {
+        // celular: texto centrado sob o planeta, preso dentro da tela
+        const t = m.firstElementChild;
+        const w = m._w || t.offsetWidth;
+        if (document.fonts?.status === "loaded") m._w = w; // mede uma vez, já com a fonte final
+        const x = Math.max(12 + w / 2, Math.min(innerWidth - 12 - w / 2, _p.x));
+        m.style.setProperty("--dx", `${(x - _p.x).toFixed(1)}px`);
+        return;
+      }
       // perto da borda direita, o texto passa para o lado esquerdo da estrela
-      const lim = innerWidth - (innerWidth < 820 ? 130 : 230);
+      const lim = innerWidth - 230;
       if (_p.x > lim + 30) m.classList.add("is-left");
       else if (_p.x < lim - 30) m.classList.remove("is-left");
     });

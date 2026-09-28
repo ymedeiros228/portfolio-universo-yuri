@@ -262,7 +262,7 @@ main { position: relative; z-index: 5; margin-left: var(--side); }
 }
 .no-webgl .marker { position: static; transform: none !important; }
 .no-webgl .marker::before, .no-webgl .marker::after { display: none; }
-.no-webgl .marker__text { position: static; justify-items: center; text-align: center; }
+.no-webgl .markers .marker .marker__text { position: static; transform: none; grid-auto-flow: row; justify-items: center; text-align: center; }
 .no-webgl .marker__name { color: var(--accent); }
 
 /* ---------------- sistemas (projetos) ---------------- */
@@ -373,6 +373,12 @@ main { position: relative; z-index: 5; margin-left: var(--side); }
 .lightbox::backdrop { background: rgba(2, 3, 8, 0.86); backdrop-filter: blur(6px); }
 .lightbox img { border-radius: 14px; max-height: 88vh; width: auto; }
 .lightbox__close { position: absolute; top: -48px; right: 0; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line-2); font-size: 20px; line-height: 1; }
+/* entrada suave da tela ampliada */
+.lightbox[open] { animation: lb-in 0.45s var(--ease); }
+.lightbox[open]::backdrop { animation: lb-fade 0.35s ease-out; }
+@keyframes lb-in { from { opacity: 0; transform: translateY(14px) scale(0.97); } }
+@keyframes lb-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .lightbox[open], .lightbox[open]::backdrop { animation: none; } }
 
 /* ---------------- revelações (só com JS) ---------------- */
 .js .split { display: inline-block; opacity: 0; transform: translateY(26px); filter: blur(10px); }
@@ -412,8 +418,12 @@ main { position: relative; z-index: 5; margin-left: var(--side); }
   /* sem WebGL: o nome sobe para os atalhos caberem acima da apresentação */
   .no-webgl .hub__center { top: 36%; }
   .no-webgl .markers { top: calc(36vh + 92px); gap: 12px 22px; }
-    .marker__text { left: 22px; top: -30px; }
-  .marker.is-left .marker__text { right: 22px; }
+  /* rótulo centrado logo abaixo do planeta, numa linha (ao lado, eles se encavalavam);
+     --dx (calculado no JS) segura o texto dentro da tela */
+  .marker__text, .marker.is-left .marker__text {
+    left: 0; right: auto; top: calc(var(--off, 20px) - 6px); transform: translateX(calc(-50% + var(--dx, 0px)));
+    grid-auto-flow: column; gap: 6px; align-items: baseline;
+  }
   .marker__name { font-size: 12px; }
   .marker__cta { display: none; }
   .plabels { display: none; } /* no celular o painel ocupa a tela: rótulos das luas iriam por cima do texto */
