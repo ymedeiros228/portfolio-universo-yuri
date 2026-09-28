@@ -65,8 +65,9 @@ const STAR_FRAG = /* glsl */ `
   void main(){
     vec2 d = gl_PointCoord - 0.5;
     float r2 = dot(d, d) * 4.0;
+    // sem discard: em GPU de celular ele desliga otimizações do chip; com
+    // mistura aditiva, a borda (a ~ 0) já não soma nada visível
     float a = exp(-r2 * 4.0);
-    if (a < 0.015) discard;
     gl_FragColor = vec4(vColor * a, 1.0);
   }
 `;

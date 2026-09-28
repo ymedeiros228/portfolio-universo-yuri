@@ -64,7 +64,7 @@ export const PLANET_FRAG = /* glsl */ `
     vec3 p = normalize(vObj) + uSeed;
     vec3 n = normalize(vWorldN);
     float lat = normalize(vObj).y;
-    vec3 col; float spec = 0.0;
+    vec3 col; float spec = 0.0; float veins = 0.0;
     if (uType == 0) {
       // gigante gasoso: faixas turbulentas por latitude
       float warp = fbm3(p * 3.0 + vec3(uTime * 0.01, 0.0, 0.0));
@@ -92,13 +92,14 @@ export const PLANET_FRAG = /* glsl */ `
     } else if (uType == 3) {
       // rochoso: crateras e terreno árido
       float f = fbm3(p * 4.0);
-      float craters = smoothstep(0.62, 0.66, fbm3(p * 9.0)) - smoothstep(0.66, 0.72, fbm3(p * 9.0)) * 0.6;
+      float c9 = fbm3(p * 9.0);
+      float craters = smoothstep(0.62, 0.66, c9) - smoothstep(0.66, 0.72, c9) * 0.6;
       col = mix(uB, uA, f);
       col = mix(col, uC, craters * 0.6);
     } else {
       // lava: crosta escura com rachaduras incandescentes
       float f = fbm3(p * 3.0);
-      float veins = 1.0 - smoothstep(0.0, 0.022, abs(fbm3(p * 3.2 + uTime * 0.01) - 0.5));
+      veins = 1.0 - smoothstep(0.0, 0.022, abs(fbm3(p * 3.2 + uTime * 0.01) - 0.5));
       col = mix(uA, uA * 1.6, f);
       col += uB * veins * 1.3; // emissivo
     }
@@ -114,7 +115,7 @@ export const PLANET_FRAG = /* glsl */ `
     // lado noturno quase preto, com um fio de luz ambiente
     lit += col * 0.045 + uAtmo * 0.012; // lado noturno com um fio de luz ambiente
     // lava: as veias brilham também no lado noturno
-    if (uType == 4) lit += uB * (1.0 - smoothstep(0.0, 0.022, abs(fbm3(p * 3.2 + uTime * 0.01) - 0.5))) * 0.8 * (1.0 - diff);
+    lit += uB * veins * 0.8 * (1.0 - diff); // veins = 0 fora da lava (reaproveita o ruído já calculado)
     gl_FragColor = vec4(lit, 1.0);
   }
 `;

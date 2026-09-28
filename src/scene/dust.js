@@ -52,7 +52,6 @@ export function buildDust({ count, reduced }) {
       void main(){
         vec2 d = gl_PointCoord - 0.5;
         float a = exp(-dot(d, d) * 14.0) * vA * 0.28;
-        if (a < 0.003) discard;
         gl_FragColor = vec4(vC * a, 1.0);
       }
     `,
