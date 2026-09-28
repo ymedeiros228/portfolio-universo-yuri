@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://portfolio-universo-yuri.vercel.app/sitemap.xml

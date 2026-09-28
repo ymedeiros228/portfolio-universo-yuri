@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#04050c" />
+  <meta name="robots" content="noindex" />
+  <title>Fora do mapa — Yuri Medeiros</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    /* página 404 autocontida: sem JS nem fontes externas */
+    :root { --bg: #04050c; --ink: #eef0fb; --ink-2: #a3a8c6; --violet: #8b6cff; --violet-2: #b7a4ff; }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { height: 100%; }
+    body {
+      display: grid; place-items: center; padding: 24px; text-align: center;
+      background:
+        radial-gradient(ellipse 38% 24% at 50% 46%, rgba(255, 190, 130, 0.16), transparent 70%),
+        radial-gradient(ellipse 70% 45% at 50% 50%, rgba(160, 90, 200, 0.14), transparent 70%),
+        var(--bg);
+      color: var(--ink); font: 400 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+    /* estrelas desenhadas com gradientes (nenhuma imagem) */
+    body::before {
+      content: ""; position: fixed; inset: 0; pointer-events: none; opacity: 0.7;
+      background-image:
+        radial-gradient(1px 1px at 12% 22%, #fff, transparent), radial-gradient(1px 1px at 78% 14%, #fff, transparent),
+        radial-gradient(1.5px 1.5px at 64% 72%, #ffe3c2, transparent), radial-gradient(1px 1px at 30% 84%, #fff, transparent),
+        radial-gradient(1px 1px at 90% 58%, #cfe0ff, transparent), radial-gradient(1.5px 1.5px at 46% 30%, #fff, transparent),
+        radial-gradient(1px 1px at 8% 64%, #fff, transparent), radial-gradient(1px 1px at 58% 92%, #cfe0ff, transparent);
+    }
+    main { position: relative; display: grid; justify-items: center; gap: 18px; max-width: 460px; }
+    svg { width: 44px; height: 44px; }
+    .code { font: 500 12px/1 ui-monospace, monospace; letter-spacing: 0.3em; color: var(--violet-2); }
+    h1 { font-weight: 500; font-size: clamp(28px, 6vw, 40px); letter-spacing: 0.02em; line-height: 1.15; }
+    p { color: var(--ink-2); }
+    a {
+      margin-top: 8px; display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px; border-radius: 999px;
+      color: var(--ink); text-decoration: none; font: 600 13px/1 system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase;
+      background: rgba(139, 108, 255, 0.16); border: 1px solid rgba(183, 164, 255, 0.4); transition: background 0.3s, border-color 0.3s;
+    }
+    a:hover, a:focus-visible { background: rgba(139, 108, 255, 0.3); border-color: var(--violet-2); outline: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="#eef0fb" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M5.5 8.5h21L16 25.5 5.5 8.5z"/><path d="M10.8 8.5l5.2 8.6 5.2-8.6"/>
+    </svg>
+    <span class="code">ERRO 404 · FORA DO MAPA</span>
+    <h1>Esta região do universo ainda não foi explorada.</h1>
+    <p>O endereço que você procurou não existe. A galáxia de projetos continua no mesmo lugar.</p>
+    <a href="/">Voltar à galáxia</a>
+  </main>
+</body>
+</html>
