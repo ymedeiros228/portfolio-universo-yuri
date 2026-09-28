@@ -210,10 +210,28 @@ function onScroll() {
     });
     hudSector.textContent = String(idx).padStart(2, "0");
     hudName.textContent = STOPS[idx].label;
+    // endereço acompanha a parada: copiar o link compartilha o planeta atual
+    const hash = idx === 0 ? "" : `#${sections[idx].id}`;
+    if (location.hash !== hash) history.replaceState(null, "", hash || location.pathname + location.search);
   }
 }
 
 measure();
+// link direto (#sigaps, #contato…): centraliza a parada como o menu faz
+const deep = sections.findIndex((el) => location.hash.length > 1 && `#${el.id}` === decodeURIComponent(location.hash));
+if (deep > 0) {
+  history.scrollRestoration = "manual";
+  const center = () => {
+    const el = sections[deep];
+    const y = Math.max(0, el.offsetTop + el.offsetHeight / 2 - innerHeight / 2);
+    scrollTo(0, y);
+    lenis?.scrollTo(y, { immediate: true, force: true });
+    onScroll();
+  };
+  center();
+  // o navegador ainda pula para a âncora depois do load: reaplica em seguida
+  addEventListener("load", () => requestAnimationFrame(() => requestAnimationFrame(center)), { once: true });
+}
 addEventListener("resize", () => { measure(); onScroll(); });
 addEventListener("load", () => { measure(); onScroll(); });
 lenis ? lenis.on("scroll", onScroll) : addEventListener("scroll", onScroll, { passive: true });

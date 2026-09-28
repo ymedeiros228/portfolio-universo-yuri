@@ -255,6 +255,16 @@ main { position: relative; z-index: 5; margin-left: var(--side); }
 .marker:hover .marker__name, .marker:focus-visible .marker__name { color: var(--accent); }
 .marker:hover .marker__cta, .marker:focus-visible .marker__cta { color: var(--ink); }
 
+/* sem WebGL: os marcadores viram uma fileira de atalhos abaixo do nome */
+.no-webgl .markers {
+  position: absolute; inset: auto 0 auto 0; top: calc(50vh + 92px); padding: 0 24px;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 34px;
+}
+.no-webgl .marker { position: static; transform: none !important; }
+.no-webgl .marker::before, .no-webgl .marker::after { display: none; }
+.no-webgl .marker__text { position: static; justify-items: center; text-align: center; }
+.no-webgl .marker__name { color: var(--accent); }
+
 /* ---------------- sistemas (projetos) ---------------- */
 .panel--system { width: min(470px, 100%); }
 .sys__title { font: 500 clamp(32px, 3.2vw, 48px)/1.05 var(--display); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 14px; }
@@ -397,6 +407,9 @@ main { position: relative; z-index: 5; margin-left: var(--side); }
   .hub__role i { margin: 0 3px; }
   .hub__intro { left: 18px; right: 18px; bottom: 150px; max-width: none; text-align: center; font-size: 12.5px; }
   .hub__cue { left: 0; right: 0; margin: 0 auto; width: max-content; bottom: 84px; } /* centrado sem transform (o GSAP anima o transform) */
+  /* sem WebGL: o nome sobe para os atalhos caberem acima da apresentação */
+  .no-webgl .hub__center { top: 36%; }
+  .no-webgl .markers { top: calc(36vh + 92px); gap: 12px 22px; }
     .marker__text { left: 22px; top: -30px; }
   .marker.is-left .marker__text { right: 22px; }
   .marker__name { font-size: 12px; }
