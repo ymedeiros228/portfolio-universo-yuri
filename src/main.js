@@ -235,6 +235,17 @@ if (deep > 0) {
 }
 addEventListener("resize", () => { measure(); onScroll(); });
 addEventListener("load", () => { measure(); onScroll(); });
+// fontes, imagens e o GitHub ao vivo mudam a altura das seções depois do load:
+// remede sempre que alguma muda, senão câmera e menu erram a parada
+if ("ResizeObserver" in window) {
+  let queued = false;
+  const ro = new ResizeObserver(() => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; measure(); onScroll(); });
+  });
+  sections.forEach((el) => ro.observe(el));
+}
 lenis ? lenis.on("scroll", onScroll) : addEventListener("scroll", onScroll, { passive: true });
 onScroll();
 
@@ -345,6 +356,11 @@ async function github() {
   repos.forEach((x) => { if (x.language) langs[x.language] = (langs[x.language] || 0) + 1; });
   const sorted = Object.entries(langs).sort((a, b) => b[1] - a[1]);
   const total = sorted.reduce((s, [, n]) => s + n, 0);
+  // porcentagens pelo maior resto: a soma fecha sempre em 100%
+  const raw = sorted.map(([, n]) => (n / total) * 100);
+  const pct = raw.map(Math.floor);
+  let rest = 100 - pct.reduce((a, b) => a + b, 0);
+  raw.map((v, i) => [v - pct[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (rest > 0) { pct[i]++; rest--; } });
   const last = repos.map((x) => x.pushed_at).sort().pop();
   document.querySelectorAll('[data-gh="repos"]').forEach((el) => { el.textContent = repos.length; });
   document.querySelector('[data-gh="langs"]').textContent = sorted.length;
@@ -352,7 +368,7 @@ async function github() {
   document.querySelector('[data-gh="bar"]').innerHTML = sorted
     .map(([l, n]) => `<span style="flex-grow:${n};background:${LANG_COLORS[l] || "#8b6cff"}" title="${escHTML(l)}"></span>`).join("");
   document.querySelector('[data-gh="legend"]').innerHTML = sorted
-    .map(([l, n]) => `<li><i style="background:${LANG_COLORS[l] || "#8b6cff"}"></i>${escHTML(l)} <span>${Math.round((n / total) * 100)}%</span></li>`).join("");
+    .map(([l], i) => `<li><i style="background:${LANG_COLORS[l] || "#8b6cff"}"></i>${escHTML(l)} <span>${pct[i]}%</span></li>`).join("");
 }
 github().catch((err) => {
   console.warn("[github]", err);

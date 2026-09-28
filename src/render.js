@@ -198,8 +198,8 @@ function contact() {
         <a href="${esc(PROFILE.linkedin)}" target="_blank" rel="noopener" aria-label="LinkedIn">${LINKEDIN}</a>
         <a href="mailto:${esc(PROFILE.email)}" aria-label="E-mail">${ICONS.mail}</a>
       </div>
+      <p class="foot">© ${new Date().getFullYear()} Yuri Medeiros · Teresina, PI · Feito com Three.js e shaders escritos à mão</p>
     </div>
-    <p class="foot">© ${new Date().getFullYear()} Yuri Medeiros · Teresina, PI · Feito com Three.js e shaders escritos à mão</p>
   </section>`;
 }
 
