@@ -84,9 +84,15 @@ export class Universe {
     this.pointerSmooth = new THREE.Vector2();
     this._last = performance.now();
     this._elapsed = 0;
+    // modo leve: celulares e máquinas modestas (poucos núcleos ou pouca memória)
+    const cores = navigator.hardwareConcurrency || 8, mem = navigator.deviceMemory || 8;
+    this.lite = this.mobile || cores <= 4 || mem <= 4;
     const dpr = window.devicePixelRatio || 1;
-    // desktop: renderiza em até 1.5× acima da tela (supersampling = bordas nítidas); a qualidade adaptativa reduz se o FPS cair
-    this.maxPR = this.mobile ? Math.min(dpr, 1.5) : Math.min(2, Math.max(1.5, dpr));
+    // desktop forte: até 1.5× acima da tela (supersampling = bordas nítidas).
+    // Leve: no máximo 1.25× — numa tela de celular (DPR 3) isso já é ~5× menos pixels.
+    // A qualidade adaptativa reduz ainda mais se o FPS cair.
+    this.maxPR = this.lite ? Math.min(dpr, 1.25) : Math.min(2, Math.max(1.5, dpr));
+    this.minPR = this.lite ? 0.75 : 1;
     this.pr = this.maxPR;
     this._frameTimes = [];
 
@@ -101,12 +107,12 @@ export class Universe {
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.01, 2000);
 
-    this.sky = buildSky(this.renderer, { count: this.mobile ? 7000 : 16000 });
-    this.galaxy = buildGalaxy(this.renderer, { count: this.mobile ? 60000 : 140000, mobile: this.mobile });
-    this.dust = buildDust({ count: this.mobile ? 500 : 1400, reduced: this.reduced });
+    this.sky = buildSky(this.renderer, { count: this.lite ? 7000 : 16000 });
+    this.galaxy = buildGalaxy(this.renderer, { count: this.lite ? 50000 : 140000, mobile: this.mobile, lite: this.lite });
+    this.dust = buildDust({ count: this.lite ? 500 : 1400, reduced: this.reduced });
     this.scene.add(this.sky.group, this.galaxy.group, this.dust.group);
 
-    this.systems = buildSystems(PROJECTS, { reduced: this.reduced });
+    this.systems = buildSystems(PROJECTS, { reduced: this.reduced, lite: this.lite });
     this.systems.systems.forEach((s) => this.galaxy.group.add(s.group));
     this.path = buildPath(this.systems.systems, this.mobile);
     this._pos = new THREE.Vector3();
@@ -139,6 +145,11 @@ export class Universe {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.composer.addPass(new ShaderPass(SanitizeShader));
     this.bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.62, 0.32, 0.74);
+    if (this.lite) {
+      // brilho é borrado por natureza: calculado em meia resolução, fica igual e custa 1/4
+      const setSize = this.bloom.setSize.bind(this.bloom);
+      this.bloom.setSize = (w, h) => setSize(Math.max(1, Math.round(w / 2)), Math.max(1, Math.round(h / 2)));
+    }
     this.composer.addPass(this.bloom);
     this.lens = new ShaderPass(LensShader);
     this.composer.addPass(this.lens);
@@ -160,19 +171,20 @@ export class Universe {
     this.dust.setPixelScale(h, this.pr);
   }
 
-  // Qualidade adaptativa: só REDUZ a resolução, e só depois de ~3 s seguidos
-  // de FPS baixo. Engasgos isolados (troca de aba, carregamento) são ignorados
-  // e nunca há sobe-e-desce — cada troca de resolução é um "pulo" visível.
+  // Qualidade adaptativa: só REDUZ a resolução, depois de ~1 s seguido de FPS
+  // baixo. Engasgos isolados (troca de aba, carregamento) são ignorados e
+  // nunca há sobe-e-desce — cada troca de resolução é um "pulo" visível.
+  // Muito lento (< 30 FPS): desce dois degraus de uma vez.
   _adapt(dt) {
     if (dt >= 0.1 || document.hidden) { this._frameTimes.length = 0; return; }
     this._frameTimes.push(dt);
-    if (this._frameTimes.length < 60) return;
+    if (this._frameTimes.length < 30) return;
     const avg = this._frameTimes.reduce((a, b) => a + b, 0) / this._frameTimes.length;
     this._frameTimes.length = 0;
-    this._slow = avg > 1 / 42 ? (this._slow || 0) + 1 : 0;
-    if (this._slow >= 3 && this.pr > 1) {
+    this._slow = avg > 1 / 45 ? (this._slow || 0) + 1 : 0;
+    if (this._slow >= 2 && this.pr > this.minPR) {
       this._slow = 0;
-      this.pr = Math.max(1, this.pr - 0.25);
+      this.pr = Math.max(this.minPR, this.pr - (avg > 1 / 30 ? 0.5 : 0.25));
       this._resize();
     }
   }

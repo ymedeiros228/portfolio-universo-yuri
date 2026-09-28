@@ -11,7 +11,10 @@ const NOISE3 = /* glsl */ `
     return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
                mix(mix(h3(i + vec3(0,0,1)), h3(i + vec3(1,0,1)), f.x), mix(h3(i + vec3(0,1,1)), h3(i + vec3(1,1,1)), f.x), f.y), f.z);
   }
-  float fbm3(vec3 p){ float v = 0., a = .5; for (int i = 0; i < 6; i++){ v += a * n3(p); p = p * 2.03 + 11.7; a *= .5; } return v; }
+  #ifndef FBM_OCT
+  #define FBM_OCT 6
+  #endif
+  float fbm3(vec3 p){ float v = 0., a = .5; for (int i = 0; i < FBM_OCT; i++){ v += a * n3(p); p = p * 2.03 + 11.7; a *= .5; } return v; }
 `;
 
 /* ------------------------------ Sol ------------------------------ */

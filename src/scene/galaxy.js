@@ -88,7 +88,7 @@ export function starColor(t, out) {
 
 const _w = new THREE.Vector3();
 
-export function buildGalaxy(renderer, { count, mobile }) {
+export function buildGalaxy(renderer, { count, mobile, lite = mobile }) {
   const group = new THREE.Group();
   const R = GALAXY.radius;
   const rand = rng(2026);
@@ -135,9 +135,14 @@ export function buildGalaxy(renderer, { count, mobile }) {
   // Volume: o disco não é uma folha. Fatias de luz e poeira empilhadas em
   // alturas diferentes, cada vez mais restritas ao centro — vistas de lado,
   // formam um disco que engrossa até o bojo.
-  const glowTex = bakeDiskGlow(renderer, mobile ? 1536 : 2048);
-  const dustTex = bakeDiskDust(renderer, mobile ? 1536 : 2048);
-  const slices = [
+  const glowTex = bakeDiskGlow(renderer, lite ? 1024 : 2048);
+  const dustTex = bakeDiskDust(renderer, lite ? 1024 : 2048);
+  // cada fatia é um plano transparente que pode cobrir a tela inteira;
+  // no modo leve ficam só 3 (o ganho das que saem vai para as de perto)
+  const slices = lite ? [
+    [0, 0.46, 0],
+    [0.45, 0.1, 0.18], [-0.45, 0.1, 0.18],
+  ] : [
     // [altura, ganho, raio da região com espessura (em UV)]
     [0, 0.46, 0],
     [0.35, 0.065, 0.2], [-0.35, 0.065, 0.2],
@@ -152,7 +157,7 @@ export function buildGalaxy(renderer, { count, mobile }) {
     group.add(m);
   });
 
-  [[0.04, 0], [0.22, 0.22], [-0.18, 0.22]].forEach(([y, core]) => {
+  (lite ? [[0.04, 0]] : [[0.04, 0], [0.22, 0.22], [-0.18, 0.22]]).forEach(([y, core]) => {
     const dust = new THREE.Mesh(new THREE.PlaneGeometry(diskSize, diskSize), planeMat(dustTex, { additive: false, core }));
     dust.rotation.x = -Math.PI / 2;
     dust.position.y = y;

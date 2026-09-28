@@ -17,14 +17,14 @@ const MOONS = [
   { type: "rock", colors: ["#a89684", "#5a4a3e", "#d9c6b0"], atmo: "#e6c9a8" },
 ];
 
-function body(size, look, seed, light) {
+function body(size, look, seed, light, lite) {
   const [a, b, c] = look.colors.map((x) => new THREE.Color(x));
   const atmo = new THREE.Color(look.atmo || look.atmosphere);
   const uniforms = {
     uSun: { value: light }, uA: { value: a }, uB: { value: b }, uC: { value: c },
     uAtmo: { value: atmo }, uType: { value: TYPE[look.type] }, uSeed: { value: seed }, uTime: { value: 0 },
   };
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(size, 96, 64), new THREE.ShaderMaterial({ vertexShader: PLANET_VERT, fragmentShader: PLANET_FRAG, uniforms }));
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(size, 96, 64), new THREE.ShaderMaterial({ vertexShader: PLANET_VERT, fragmentShader: PLANET_FRAG, uniforms, defines: { FBM_OCT: lite ? 4 : 6 } }));
   const atmoMesh = new THREE.Mesh(new THREE.SphereGeometry(size * 1.12, 64, 48), new THREE.ShaderMaterial({
     vertexShader: PLANET_VERT, fragmentShader: ATMO_FRAG,
     uniforms: { uSun: { value: light }, uAtmo: { value: atmo }, uCenter: { value: new THREE.Vector3() } },
@@ -49,7 +49,7 @@ function makeRing(size, color, light) {
   return mesh;
 }
 
-export function buildSystems(projects, { reduced }) {
+export function buildSystems(projects, { reduced, lite = false }) {
   const rand = rng(77);
   // a luz de todos os planetas: o núcleo da galáxia, um pouco acima do disco
   const light = new THREE.Vector3(0, 1.2, 0);
@@ -66,7 +66,7 @@ export function buildSystems(projects, { reduced }) {
     const tilt = new THREE.Group();
     tilt.rotation.z = (rand() - 0.5) * 0.5;
     group.add(tilt);
-    const planet = body(r, cfg, si * 3.1, light);
+    const planet = body(r, cfg, si * 3.1, light, lite);
     tilt.add(planet.mesh);
     group.add(planet.atmoMesh);
     let ring = null;
@@ -92,7 +92,7 @@ export function buildSystems(projects, { reduced }) {
       plane.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), orbitMat));
       const holder = new THREE.Group();
       plane.add(holder);
-      const moon = body(size, MOONS[i % MOONS.length], si * 5.3 + i * 1.9, light);
+      const moon = body(size, MOONS[i % MOONS.length], si * 5.3 + i * 1.9, light, lite);
       holder.add(moon.mesh, moon.atmoMesh);
       return {
         label: h, holder, size, orbit, ...moon,

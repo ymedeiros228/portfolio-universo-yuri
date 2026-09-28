@@ -50,13 +50,20 @@ import("./scene/Universe.js")
 setTimeout(finishLoading, 7000); // nunca prender o visitante no loader
 
 /* ---------------- rótulos presos ao 3D ---------------- */
+// Variável CSS na raiz invalida o estilo da página inteira: só escreve quando muda.
+const _vars = {};
+const setVar = (name, value) => {
+  if (_vars[name] === value) return;
+  _vars[name] = value;
+  root.style.setProperty(name, value);
+};
 const _p = {}, _c = {};
 function placeLabels(u) {
   const p = u.smooth;
   // marcadores do mapa: somem ao sair da abertura
   const hub = Math.max(0, Math.min(1, 1 - p * 1.8));
-  root.style.setProperty("--hub", hub.toFixed(3));
-  root.style.setProperty("--hub-vis", hub > 0.01 ? "visible" : "hidden");
+  setVar("--hub", hub.toFixed(3));
+  setVar("--hub-vis", hub > 0.01 ? "visible" : "hidden");
   const k = innerHeight / (2 * Math.tan((u.camera.fov * Math.PI) / 360));
   if (hub > 0.01) {
     u.systems.systems.forEach((s, i) => {
@@ -189,7 +196,7 @@ function onScroll() {
 
   // sombra de leitura: presente nas paradas com painel à esquerda
   const shade = Math.min(1, p * 1.6);
-  root.style.setProperty("--shade", shade.toFixed(3));
+  setVar("--shade", shade.toFixed(2));
   progressBar.style.transform = `scaleY(${(p / (centers.length - 1)).toFixed(4)})`;
 
   const idx = Math.round(p);
