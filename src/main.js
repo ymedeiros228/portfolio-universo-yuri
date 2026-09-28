@@ -218,7 +218,8 @@ function onScroll() {
 
 measure();
 // link direto (#sigaps, #contato…): centraliza a parada como o menu faz
-const deep = sections.findIndex((el) => location.hash.length > 1 && `#${el.id}` === decodeURIComponent(location.hash));
+// (hash malformado, como "#%E0", não pode derrubar o script: compara sem decodificar)
+const deep = sections.findIndex((el) => location.hash.length > 1 && location.hash === `#${encodeURIComponent(el.id)}`);
 if (deep > 0) {
   history.scrollRestoration = "manual";
   const center = () => {
