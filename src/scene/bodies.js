@@ -143,8 +143,13 @@ export const RING_FRAG = /* glsl */ `
   float h(float x){ return fract(sin(x * 91.7) * 4375.5); }
   void main(){
     float r = vR;
-    float bands = 0.55 + 0.45 * sin(r * 120.0) * sin(r * 37.0 + 1.3);
-    float gap = smoothstep(0.0, 0.01, abs(r - 0.72)) * smoothstep(0.0, 0.006, abs(r - 0.86));
+    // faixas mais finas que um pixel viram a média (evita cintilar de longe)
+    float fw = fwidth(r);
+    float f120 = 1.0 - smoothstep(0.25, 0.6, fw * 120.0 / 6.2832);
+    float f37 = 1.0 - smoothstep(0.25, 0.6, fw * 37.0 / 6.2832);
+    float bands = 0.55 + 0.45 * (sin(r * 120.0) * f120) * (sin(r * 37.0 + 1.3) * f37);
+    // divisões com no mínimo ~1,5px de borda macia
+    float gap = smoothstep(0.0, max(0.01, fw * 1.5), abs(r - 0.72)) * smoothstep(0.0, max(0.006, fw * 1.5), abs(r - 0.86));
     float a = bands * gap * smoothstep(0.0, 0.05, r - 0.5) * smoothstep(0.0, 0.08, 1.0 - r);
     // sombra do planeta sobre o anel
     vec3 toSun = normalize(uSun - uCenter);

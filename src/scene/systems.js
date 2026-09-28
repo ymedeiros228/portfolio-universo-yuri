@@ -17,19 +17,27 @@ const MOONS = [
   { type: "rock", colors: ["#a89684", "#5a4a3e", "#d9c6b0"], atmo: "#e6c9a8" },
 ];
 
+// esferas de raio 1 compartilhadas por todos os corpos (cada um só muda a escala);
+// o shader usa normalize(position), então o visual é idêntico
+let SPHERE = null, ATMO_SPHERE = null;
+
 function body(size, look, seed, light, lite) {
+  SPHERE ??= new THREE.SphereGeometry(1, 96, 64);
+  ATMO_SPHERE ??= new THREE.SphereGeometry(1, 64, 48);
   const [a, b, c] = look.colors.map((x) => new THREE.Color(x));
   const atmo = new THREE.Color(look.atmo || look.atmosphere);
   const uniforms = {
     uSun: { value: light }, uA: { value: a }, uB: { value: b }, uC: { value: c },
     uAtmo: { value: atmo }, uType: { value: TYPE[look.type] }, uSeed: { value: seed }, uTime: { value: 0 },
   };
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(size, 96, 64), new THREE.ShaderMaterial({ vertexShader: PLANET_VERT, fragmentShader: PLANET_FRAG, uniforms, defines: { FBM_OCT: lite ? 4 : 6 } }));
-  const atmoMesh = new THREE.Mesh(new THREE.SphereGeometry(size * 1.12, 64, 48), new THREE.ShaderMaterial({
+  const mesh = new THREE.Mesh(SPHERE, new THREE.ShaderMaterial({ vertexShader: PLANET_VERT, fragmentShader: PLANET_FRAG, uniforms, defines: { FBM_OCT: lite ? 4 : 6 } }));
+  mesh.scale.setScalar(size);
+  const atmoMesh = new THREE.Mesh(ATMO_SPHERE, new THREE.ShaderMaterial({
     vertexShader: PLANET_VERT, fragmentShader: ATMO_FRAG,
     uniforms: { uSun: { value: light }, uAtmo: { value: atmo }, uCenter: { value: new THREE.Vector3() } },
     blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, side: THREE.BackSide,
   }));
+  atmoMesh.scale.setScalar(size * 1.12);
   return { mesh, atmoMesh, uniforms, colors: [a, b, c] };
 }
 

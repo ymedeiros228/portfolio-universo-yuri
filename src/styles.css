@@ -245,7 +245,7 @@ main { position: relative; z-index: 5; margin-left: var(--side); }
 .marker.is-left .marker__text { left: auto; right: var(--off, 40px); justify-items: end; text-align: right; }
 .marker__num { font: 500 12px var(--mono); letter-spacing: 0.12em; color: var(--violet-2); }
 .marker__name { font: 600 13px var(--display); letter-spacing: 0.12em; text-transform: uppercase; transition: color 0.4s; }
-.marker__cta { font-size: 12px; color: var(--ink-3); transition: color 0.4s; }
+.marker__cta { font-size: 12px; color: var(--ink-2); transition: color 0.4s; }
 .marker::after { content: ""; position: absolute; left: calc(var(--off, 40px) * -1); top: calc(var(--off, 40px) * -1); width: calc(var(--off, 40px) * 2); height: calc(var(--off, 40px) * 2); border-radius: 50%; }
 .marker::before {
   content: ""; position: absolute; left: 0; top: 0; width: calc(var(--off, 40px) * 1.6); height: calc(var(--off, 40px) * 1.6); border-radius: 50%;
