@@ -237,10 +237,14 @@ main { position: relative; z-index: 5; margin-left: var(--side); }
   position: absolute; left: 0; top: 0; pointer-events: auto; will-change: transform;
   visibility: var(--hub-vis, visible);
 }
-.marker__text { position: absolute; left: var(--off, 40px); top: -34px; display: grid; gap: 2px; white-space: nowrap; }
+.marker__text {
+  position: absolute; left: var(--off, 40px); top: -34px; display: grid; gap: 2px; white-space: nowrap;
+  /* sombra junto das letras: as órbitas passam por trás sem riscar o texto */
+  text-shadow: 0 0 2px #04050c, 0 0 4px #04050c, 0 1px 14px rgba(0, 0, 0, 0.9);
+}
 .marker.is-left .marker__text { left: auto; right: var(--off, 40px); justify-items: end; text-align: right; }
 .marker__num { font: 500 12px var(--mono); letter-spacing: 0.12em; color: var(--violet-2); }
-.marker__name { font: 600 13px var(--display); letter-spacing: 0.12em; text-transform: uppercase; transition: color 0.4s; text-shadow: 0 1px 14px rgba(0, 0, 0, 0.9); }
+.marker__name { font: 600 13px var(--display); letter-spacing: 0.12em; text-transform: uppercase; transition: color 0.4s; }
 .marker__cta { font-size: 12px; color: var(--ink-3); transition: color 0.4s; }
 .marker::after { content: ""; position: absolute; left: calc(var(--off, 40px) * -1); top: calc(var(--off, 40px) * -1); width: calc(var(--off, 40px) * 2); height: calc(var(--off, 40px) * 2); border-radius: 50%; }
 .marker::before {
@@ -248,8 +252,8 @@ main { position: relative; z-index: 5; margin-left: var(--side); }
   transform: translate(-50%, -50%) scale(0.8); border: 1px solid var(--accent); opacity: 0; transition: opacity 0.5s, transform 0.6s var(--ease); pointer-events: none;
 }
 .marker:hover::before { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
-.marker:hover .marker:hover .marker:hover .marker__name { color: var(--accent); }
-.marker:hover .marker__cta { color: var(--ink); }
+.marker:hover .marker__name, .marker:focus-visible .marker__name { color: var(--accent); }
+.marker:hover .marker__cta, .marker:focus-visible .marker__cta { color: var(--ink); }
 
 /* ---------------- sistemas (projetos) ---------------- */
 .panel--system { width: min(470px, 100%); }
@@ -275,8 +279,9 @@ main { position: relative; z-index: 5; margin-left: var(--side); }
 .plabel.is-left { padding: 0 30px 0 0; justify-items: end; text-align: right; }
 .plabel.is-left::before { left: auto; right: 0; background: linear-gradient(270deg, transparent, var(--accent)); }
 .plabel__num { font: 500 12px var(--mono); color: var(--violet-2); letter-spacing: 0.1em; }
-.plabel__value { font: 600 15px var(--display); letter-spacing: 0.04em; text-shadow: 0 1px 12px rgba(0, 0, 0, 0.9); }
-.plabel__text { grid-column: 2; max-width: 22ch; white-space: normal; font-size: 12px; line-height: 1.35; color: var(--ink-2); text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9); }
+.plabel__value { font: 600 15px var(--display); letter-spacing: 0.04em; text-shadow: 0 0 2px #04050c, 0 0 4px #04050c, 0 1px 12px rgba(0, 0, 0, 0.9); }
+.plabel__text { grid-column: 2; max-width: 22ch; white-space: normal; font-size: 12px; line-height: 1.35; color: var(--ink-2); text-shadow: 0 0 2px #04050c, 0 0 4px #04050c, 0 1px 10px rgba(0, 0, 0, 0.9); }
+.plabel__text, .plabel__value { padding: 2px 10px; margin: -2px -10px; border-radius: 10px; background: radial-gradient(closest-side, rgba(4, 5, 12, 0.78) 55%, rgba(4, 5, 12, 0)); } /* a órbita passa por trás sem riscar o texto */
 
 /* ---------------- skills ---------------- */
 .stop--skills { justify-content: center; }

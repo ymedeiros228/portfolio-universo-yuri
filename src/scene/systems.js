@@ -49,6 +49,36 @@ function makeRing(size, color, light) {
   return mesh;
 }
 
+// órbita: anel fino com borda suavizada no shader (a linha de 1px sem
+// antisserrilhamento "tremia" com a galáxia girando)
+const ORBIT_VERT = /* glsl */ `
+  varying float vR;
+  void main(){ vR = length(position.xy); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+`;
+const ORBIT_FRAG = /* glsl */ `
+  uniform vec3 uColor; uniform float uOpacity; uniform float uOrbit; uniform float uMargin;
+  varying float vR;
+  void main(){
+    float w = max(fwidth(vR), 1e-6);          // tamanho de 1 pixel, em unidades do mundo
+    float d = abs(vR - uOrbit) / w;           // distância até a órbita, em pixels
+    float a = clamp(1.1 - d, 0.0, 1.0);       // traço de ~1,2px com borda macia
+    a *= clamp(uMargin / (w * 1.5), 0.0, 1.0); // de muito longe, apaga em vez de serrilhar
+    if (a <= 0.001) discard;
+    gl_FragColor = vec4(uColor * uOpacity * a, 1.0);
+  }
+`;
+function makeOrbit(orbit, color) {
+  const margin = orbit * 0.05;
+  const geo = new THREE.RingGeometry(orbit - margin, orbit + margin, 256, 1);
+  const mesh = new THREE.Mesh(geo, new THREE.ShaderMaterial({
+    vertexShader: ORBIT_VERT, fragmentShader: ORBIT_FRAG,
+    uniforms: { uColor: { value: color }, uOpacity: { value: 0.2 }, uOrbit: { value: orbit }, uMargin: { value: margin } },
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+  }));
+  mesh.rotation.x = -Math.PI / 2; // deita o anel no plano das luas
+  return mesh;
+}
+
 export function buildSystems(projects, { reduced, lite = false }) {
   const rand = rng(77);
   // a luz de todos os planetas: o núcleo da galáxia, um pouco acima do disco
@@ -78,7 +108,7 @@ export function buildSystems(projects, { reduced, lite = false }) {
 
     /* luas: uma por destaque */
     const accent = new THREE.Color(proj.system.star);
-    const orbitMat = new THREE.LineBasicMaterial({ color: accent.clone().lerp(new THREE.Color("#ffffff"), 0.5), transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending });
+    const orbitColor = accent.clone().lerp(new THREE.Color("#ffffff"), 0.5);
     const start = cfg.rings ? 2.8 : 1.9;
     const plane = new THREE.Group();
     plane.rotation.x = 0.22 + rand() * 0.12;
@@ -87,9 +117,7 @@ export function buildSystems(projects, { reduced, lite = false }) {
     const moons = proj.highlights.slice(0, 3).map((h, i) => {
       const orbit = r * (start + i * 0.75);
       const size = r * (0.15 - i * 0.02);
-      const pts = [];
-      for (let k = 0; k <= 160; k++) { const t = (k / 160) * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(t) * orbit, 0, Math.sin(t) * orbit)); }
-      plane.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), orbitMat));
+      plane.add(makeOrbit(orbit, orbitColor));
       const holder = new THREE.Group();
       plane.add(holder);
       const moon = body(size, MOONS[i % MOONS.length], si * 5.3 + i * 1.9, light, lite);
