@@ -1,135 +1,77 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#020308" />
-  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <title>Yuri Medeiros — O Universo de Yuri</title>
-  <meta name="description" content="Yuri Medeiros — desenvolvedor full-stack. Uma experiência digital: o visitante não entra em um site, explora um universo." />
-  <meta name="robots" content="index, follow" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#04050c" />
+  <title>Yuri Medeiros — Desenvolvedor full-stack</title>
+  <meta name="description" content="Portfólio de Yuri Medeiros, desenvolvedor full-stack em Teresina. Software para saúde pública, GIS e IA aplicada — cada projeto é um sistema estelar numa galáxia interativa." />
   <link rel="canonical" href="https://ymedeiros228.github.io/portfolio-universo-yuri/" />
-  <meta name="author" content="Yuri Medeiros" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
 
-  <!-- Open Graph -->
   <meta property="og:type" content="website" />
+  <meta property="og:locale" content="pt_BR" />
   <meta property="og:title" content="Yuri Medeiros — O Universo de Yuri" />
-  <meta property="og:description" content="Desenvolvedor full-stack especializado em saúde pública, GIS e IA. Explore uma galáxia de projetos reais." />
+  <meta property="og:description" content="Desenvolvedor full-stack: saúde pública, GIS e IA. Uma galáxia de projetos reais." />
   <meta property="og:url" content="https://ymedeiros228.github.io/portfolio-universo-yuri/" />
-  <meta property="og:site_name" content="O Universo de Yuri" />
-  <meta property="og:image" content="https://ymedeiros228.github.io/portfolio-universo-yuri/og-image.svg" />
+  <meta property="og:image" content="https://ymedeiros228.github.io/portfolio-universo-yuri/og-image.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-
-  <!-- Twitter Cards -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Yuri Medeiros — O Universo de Yuri" />
-  <meta name="twitter:description" content="Desenvolvedor full-stack especializado em saúde pública, GIS e IA. Explore uma galáxia de projetos reais." />
-  <meta name="twitter:image" content="https://ymedeiros228.github.io/portfolio-universo-yuri/og-image.svg" />
+  <meta name="twitter:image" content="https://ymedeiros228.github.io/portfolio-universo-yuri/og-image.jpg" />
+
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Person","name":"Yuri Medeiros","jobTitle":"Desenvolvedor full-stack",
+   "address":{"@type":"PostalAddress","addressLocality":"Teresina","addressRegion":"PI","addressCountry":"BR"},
+   "sameAs":["https://github.com/ymedeiros228","https://www.linkedin.com/in/yuri-medeiros-1071533b4/"]}
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet" />
-
-  <link rel="stylesheet" href="./css/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/styles.css" />
 </head>
 <body>
-  <div id="scene-root" aria-hidden="true"></div>
+  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
 
-  <!-- O nome vive no centro da galáxia. Clicar mergulha em "Sobre". -->
-  <button class="center-name" id="center-name" type="button" aria-label="Entrar — Sobre Yuri">
-    <h1 class="center-name__title">YURI MEDEIROS</h1>
-    <p class="center-name__phrase">Ciência da Computação · Full-stack · Saúde pública · GIS · IA</p>
-    <span class="center-name__hint">toque para mergulhar</span>
-  </button>
+  <div id="universe" aria-hidden="true"></div>
+  <div class="shade" aria-hidden="true"></div>
 
-  <!-- Assinatura -->
-  <div class="signature" id="signature" aria-hidden="true">
-    <span class="signature__dot"></span>
-    <span>O Universo de Yuri</span>
+  <div class="loader" id="loader" aria-hidden="true">
+    <div class="loader__mark"><!--MARK--></div>
+    <div class="loader__bar"><span></span></div>
+    <div class="loader__hint">acendendo a galáxia</div>
   </div>
 
-  <!-- Rodapé -->
-  <footer class="foot" id="foot" aria-hidden="true">
-    <a class="foot__link" href="https://github.com/ymedeiros228" target="_blank" rel="noopener">GitHub <span>↗</span></a>
-    <span class="foot__sep"></span>
-    <a class="foot__link" href="https://www.linkedin.com/in/yuri-medeiros-1071533b4/" target="_blank" rel="noopener">LinkedIn <span>↗</span></a>
-    <span class="foot__sep"></span>
-    <span class="foot__loc">Teresina — PI, Brasil</span>
-  </footer>
+  <aside class="side">
+    <a class="side__logo" href="#inicio" data-goto="0" aria-label="Início"><!--MARK--></a>
+    <nav class="nav" id="nav" aria-label="Seções"></nav>
+    <div class="side__progress" aria-hidden="true"><span id="progress"></span></div>
+  </aside>
 
-  <!-- Dica etérea -->
-  <div class="whisper" id="whisper">
-    <span class="whisper__line"></span>
-    <span>mova · aproxime-se de uma estrela · toque o núcleo</span>
-  </div>
-
-  <!-- Véu de viagem (transição entre galáxia e projeto) -->
-  <div class="travel-veil" id="travel-veil" aria-hidden="true"></div>
-
-  <!-- Indicador de distância -->
-  <div class="zoom-indicator" id="zoom-indicator" aria-hidden="true">
-    <div class="zoom-indicator__bar"><div class="zoom-indicator__fill" id="zoom-fill"></div></div>
-  </div>
-
-  <!-- Rótulos das estrelas-projeto -->
-  <div class="star-labels" id="star-labels" aria-hidden="true"></div>
-
-  <!-- Rótulos do arquivo -->
-  <div class="archive-labels" id="archive-labels" aria-hidden="true"></div>
-
-  <!-- Mundo-projeto -->
-  <div class="world" id="world" aria-hidden="true">
-    <button class="world__return" id="world-return" type="button" aria-label="Voltar à galáxia">
-      <span class="world__return-glyph"></span>
-    </button>
-
-    <header class="world__head">
-      <p class="world__index" id="world-index"></p>
-      <h2 class="world__name" id="world-name"></h2>
-      <p class="world__epithet" id="world-epithet"></p>
-    </header>
-
-    <div class="moon-labels" id="moon-labels"></div>
-
-    <article class="world__scripture" id="world-scripture" aria-live="polite"></article>
-
-    <div class="constellation-labels" id="constellation-labels"></div>
-
-    <div class="world__links" id="world-links">
-      <a class="world__link" id="world-github" href="#" target="_blank" rel="noopener">GitHub <span>↗</span></a>
-      <span class="world__link-sep"></span>
-      <a class="world__link" id="world-demo" href="#" target="_blank" rel="noopener">Demo <span>↗</span></a>
-    </div>
-  </div>
-
-  <!-- Véu de ignição -->
-  <div class="veil" id="veil">
-    <div class="veil__core"></div>
-    <div class="veil__text">acendendo as estrelas</div>
-  </div>
-
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
-  <script type="module" src="./js/projects.js"></script>
-  <script type="module" src="./js/scene.js"></script>
-  <script type="module" src="./js/main.js"></script>
-
-  <noscript>
-    <div style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#020308;color:rgba(246,242,234,0.7);font-family:serif;text-align:center;padding:40px;z-index:200;">
-      <h1 style="font-size:28px;font-weight:300;letter-spacing:0.1em;margin-bottom:20px;">Yuri Medeiros</h1>
-      <p style="font-size:14px;line-height:1.8;max-width:420px;margin-bottom:30px;opacity:0.6;">Esta experiência requer JavaScript. Você pode conhecer meu trabalho diretamente nos links abaixo.</p>
-      <div style="display:flex;gap:24px;">
-        <a href="https://github.com/ymedeiros228" target="_blank" rel="noopener" style="color:#d8c0a8;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;text-decoration:none;">GitHub ↗</a>
-        <a href="https://www.linkedin.com/in/yuri-medeiros-1071533b4/" target="_blank" rel="noopener" style="color:#d8c0a8;font-size:11px;letter-spacing:0.3em;text-transform:uppercase;text-decoration:none;">LinkedIn ↗</a>
+  <header class="top">
+    <p class="top__tag">Explorando ideias.<br />Construindo soluções reais.</p>
+    <div class="top__right">
+      <div class="coords" aria-label="Coordenadas de Teresina">
+        <span class="coords__label">Coordenadas espaço-tempo</span>
+        <span class="coords__value">−5.0892° S, −42.8019° W · <span id="clock">--:--:--</span></span>
       </div>
+      <a class="top__cta" href="#contato" data-goto="10">Contato</a>
     </div>
-  </noscript>
+  </header>
+
+  <div class="hud" aria-hidden="true">
+    <span class="hud__sector" id="hud-sector">00</span>
+    <span class="hud__line"></span>
+    <span class="hud__name" id="hud-name">Início</span>
+  </div>
+
+  <main id="conteudo"></main>
+
+  <dialog class="lightbox" id="lightbox" aria-label="Tela ampliada">
+    <button class="lightbox__close" type="button" aria-label="Fechar">×</button>
+  </dialog>
+
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>
