@@ -89,10 +89,10 @@ export class Universe {
     this.lite = this.mobile || cores <= 4 || mem <= 4;
     const dpr = window.devicePixelRatio || 1;
     // desktop forte: até 1.5× acima da tela (supersampling = bordas nítidas).
-    // Leve: no máximo 1.25× — numa tela de celular (DPR 3) isso já é ~5× menos pixels.
-    // A qualidade adaptativa reduz ainda mais se o FPS cair.
-    this.maxPR = this.lite ? Math.min(dpr, 1.25) : Math.min(2, Math.max(1.5, dpr));
-    this.minPR = this.lite ? 0.75 : 1;
+    // Leve: até 1.5× (numa tela DPR 3 já é 4× menos pixels que o nativo).
+    // Piso de 1×: abaixo disso a cena fica visivelmente borrada.
+    this.maxPR = this.lite ? Math.min(dpr, 1.5) : Math.min(2, Math.max(1.5, dpr));
+    this.minPR = 1;
     this.pr = this.maxPR;
     this._frameTimes = [];
 
@@ -171,20 +171,20 @@ export class Universe {
     this.dust.setPixelScale(h, this.pr);
   }
 
-  // Qualidade adaptativa: só REDUZ a resolução, depois de ~1 s seguido de FPS
-  // baixo. Engasgos isolados (troca de aba, carregamento) são ignorados e
-  // nunca há sobe-e-desce — cada troca de resolução é um "pulo" visível.
-  // Muito lento (< 30 FPS): desce dois degraus de uma vez.
+  // Qualidade adaptativa: só REDUZ a resolução, e só com travamento de verdade
+  // (< 40 FPS por ~1.5 s seguidos). Engasgos isolados (troca de aba,
+  // carregamento) são ignorados e nunca há sobe-e-desce — cada troca de
+  // resolução é um "pulo" visível.
   _adapt(dt) {
     if (dt >= 0.1 || document.hidden) { this._frameTimes.length = 0; return; }
     this._frameTimes.push(dt);
     if (this._frameTimes.length < 30) return;
     const avg = this._frameTimes.reduce((a, b) => a + b, 0) / this._frameTimes.length;
     this._frameTimes.length = 0;
-    this._slow = avg > 1 / 45 ? (this._slow || 0) + 1 : 0;
-    if (this._slow >= 2 && this.pr > this.minPR) {
+    this._slow = avg > 1 / 40 ? (this._slow || 0) + 1 : 0;
+    if (this._slow >= 3 && this.pr > this.minPR) {
       this._slow = 0;
-      this.pr = Math.max(this.minPR, this.pr - (avg > 1 / 30 ? 0.5 : 0.25));
+      this.pr = Math.max(this.minPR, this.pr - 0.25);
       this._resize();
     }
   }
@@ -267,6 +267,10 @@ export class Universe {
 
   _loop() {
     const now = performance.now();
+    // modo leve em tela de 120 Hz ou mais: pula quadros que chegam em menos
+    // de 10 ms — 120 Hz vira 60 (metade do trabalho da GPU e menos aquecimento),
+    // 90 Hz e 60 Hz ficam intactos. A rolagem da página segue na taxa da tela.
+    if (this.lite && now - this._last < 10) return;
     const dt = Math.min((now - this._last) / 1000, 0.1);
     this._last = now;
     const t = (this._elapsed += dt);
